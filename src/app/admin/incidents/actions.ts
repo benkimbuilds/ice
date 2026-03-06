@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
+import { processIncidentPipeline } from "@/lib/pipeline";
 
 async function requireAdmin() {
   const session = await getSession();
@@ -29,6 +30,12 @@ export async function createIncident(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+
+  // Fire and forget — don't block the response
+  processIncidentPipeline(incident.id).catch((err) => {
+    console.error(`Pipeline failed for incident ${incident.id}:`, err.message);
+  });
+
   return incident;
 }
 
