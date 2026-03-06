@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { IncidentTable } from "@/components/admin/incident-table";
 import { AddIncidentForm } from "@/components/admin/add-incident-form";
 import { CsvUploadForm } from "@/components/admin/csv-upload-form";
+import { ScrapeAllButton } from "@/components/admin/scrape-all-button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function AdminPage() {
       <div className="flex gap-3 items-start flex-wrap">
         <AddIncidentForm />
         <CsvUploadForm />
+        <ScrapeAllButton incompleteCount={stats.raw + stats.failed} />
       </div>
 
       <IncidentTable incidents={incidents} />

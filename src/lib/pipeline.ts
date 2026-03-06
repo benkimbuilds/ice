@@ -15,14 +15,14 @@ export async function processIncidentPipeline(incidentId: number) {
   });
 
   try {
-    const text = await scrapeUrl(incident.url);
+    const { metadata, bodyText } = await scrapeUrl(incident.url);
 
-    const extracted = await extractFromText(text, incident.url);
+    const extracted = await extractFromText(bodyText, incident.url, metadata);
 
     await prisma.incident.update({
       where: { id: incidentId },
       data: {
-        rawHtml: text.slice(0, 50000),
+        rawHtml: bodyText.slice(0, 50000),
         headline: incident.headline || extracted.headline,
         date: incident.date || extracted.date,
         location: incident.location || extracted.location,

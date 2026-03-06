@@ -101,10 +101,60 @@ function EditRow({
 export function IncidentTable({ incidents }: { incidents: Incident[] }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  const filtered = incidents.filter((inc) => {
+    if (statusFilter !== "ALL" && inc.status !== statusFilter) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      inc.headline?.toLowerCase().includes(q) ||
+      inc.url.toLowerCase().includes(q) ||
+      inc.location?.toLowerCase().includes(q) ||
+      inc.summary?.toLowerCase().includes(q) ||
+      inc.incidentType?.toLowerCase().includes(q) ||
+      inc.country?.toLowerCase().includes(q) ||
+      inc.date?.toLowerCase().includes(q)
+    );
+  });
 
   return (
+    <div>
+      <div className="flex flex-wrap gap-3 mb-4 items-center">
+        <input
+          type="text"
+          placeholder="Search by headline, URL, location, type..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-64 px-3 py-2 border border-warm-300 bg-white text-sm rounded-md focus:outline-none focus:border-warm-500"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 border border-warm-300 bg-white text-sm rounded-md focus:outline-none focus:border-warm-500"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="RAW">RAW</option>
+          <option value="COMPLETE">COMPLETE</option>
+          <option value="FAILED">FAILED</option>
+          <option value="PROCESSING">PROCESSING</option>
+        </select>
+        <span className="text-xs text-warm-400">
+          {filtered.length} of {incidents.length}
+        </span>
+      </div>
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm table-fixed">
+        <colgroup>
+          <col className="w-[80px]" />
+          <col className="w-[30%]" />
+          <col className="w-[80px]" />
+          <col className="w-[12%]" />
+          <col className="w-[15%]" />
+          <col className="w-[20%]" />
+          <col className="w-[100px]" />
+        </colgroup>
         <thead>
           <tr className="border-b border-warm-300 text-left">
             <th className="py-2 pr-3 font-medium text-warm-500">Status</th>
@@ -117,7 +167,7 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
           </tr>
         </thead>
         <tbody>
-          {incidents.map((inc) =>
+          {filtered.map((inc) =>
             editingId === inc.id ? (
               <EditRow
                 key={inc.id}
@@ -134,15 +184,15 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
                     </span>
                   )}
                 </td>
-                <td className="py-2 pr-3 max-w-48 truncate" title={inc.headline || ""}>
+                <td className="py-2 pr-3 truncate" title={inc.headline || ""}>
                   {inc.headline || <span className="text-warm-300 italic">No headline</span>}
                 </td>
-                <td className="py-2 pr-3 whitespace-nowrap">{inc.date || "—"}</td>
-                <td className="py-2 pr-3 max-w-32 truncate">{inc.location || "—"}</td>
-                <td className="py-2 pr-3 max-w-40 truncate" title={inc.incidentType || ""}>
+                <td className="py-2 pr-3 truncate">{inc.date || "—"}</td>
+                <td className="py-2 pr-3 truncate">{inc.location || "—"}</td>
+                <td className="py-2 pr-3 truncate" title={inc.incidentType || ""}>
                   {inc.incidentType || "—"}
                 </td>
-                <td className="py-2 pr-3 max-w-48 truncate">
+                <td className="py-2 pr-3 truncate">
                   <a href={inc.url} target="_blank" rel="noopener" className="text-blue-600 hover:underline">
                     {inc.url.replace(/https?:\/\/(www\.)?/, "").slice(0, 40)}...
                   </a>
@@ -188,6 +238,7 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
           )}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

@@ -1,4 +1,9 @@
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
 import { IncidentCard } from "./incident-card";
+import { TIME_RANGES } from "@/lib/constants";
 
 type Incident = {
   id: number;
@@ -14,46 +19,99 @@ type Incident = {
 export function IncidentList({
   incidents,
   total,
+  totalAll,
   page,
   totalPages,
 }: {
   incidents: Incident[];
   total: number;
+  totalAll: number;
   page: number;
   totalPages: number;
 }) {
-  if (incidents.length === 0) {
-    return (
-      <div className="py-12 text-center text-warm-400">
-        No incidents found matching your filters.
-      </div>
-    );
-  }
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const currentRange = searchParams.get("range") || "all";
+
+  const setRange = (range: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
+    if (range === "all") {
+      params.delete("range");
+    } else {
+      params.set("range", range);
+    }
+    startTransition(() => {
+      router.push(`/?${params.toString()}`);
+    });
+  };
 
   return (
     <div>
-      <p className="text-sm text-warm-400 mb-4">
-        {total} incident{total !== 1 ? "s" : ""}
+      {/* Results count */}
+      <p className="text-sm text-warm-500 mb-2">
+        Showing <span className="font-semibold text-warm-900">{total}</span> of{" "}
+        <span className="font-semibold text-warm-900">{totalAll}</span>{" "}
+        documented incidents
       </p>
-      <div>
-        {incidents.map((incident) => (
-          <IncidentCard key={incident.id} incident={incident} />
+
+      <hr className="border-warm-200 mb-4" />
+
+      {/* Time range buttons */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {TIME_RANGES.map((range) => (
+          <button
+            key={range.value}
+            onClick={() => setRange(range.value)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md border transition-colors ${
+              currentRange === range.value
+                ? "bg-orange-500 text-white border-orange-500"
+                : "bg-white text-warm-700 border-warm-300 hover:border-warm-400"
+            }`}
+          >
+            {range.label}
+          </button>
         ))}
       </div>
-      {totalPages > 1 && (
-        <Pagination page={page} totalPages={totalPages} />
+
+      {isPending && (
+        <div className="text-sm text-warm-400 mb-4">Loading...</div>
+      )}
+
+      {incidents.length === 0 ? (
+        <div className="py-12 text-center text-warm-400">
+          No incidents found matching your filters.
+        </div>
+      ) : (
+        <>
+          <div>
+            {incidents.map((incident) => (
+              <IncidentCard key={incident.id} incident={incident} />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <Pagination page={page} totalPages={totalPages} />
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function Pagination({ page, totalPages }: { page: number; totalPages: number }) {
+function Pagination({
+  page,
+  totalPages,
+}: {
+  page: number;
+  totalPages: number;
+}) {
   return (
     <div className="flex items-center justify-center gap-2 mt-8">
       {page > 1 && (
         <a
           href={`?page=${page - 1}`}
-          className="px-3 py-1.5 border border-warm-300 text-sm hover:bg-warm-100 transition-colors"
+          className="px-3 py-1.5 rounded-md border border-warm-300 text-sm hover:bg-warm-100 transition-colors"
         >
           Previous
         </a>
@@ -64,7 +122,7 @@ function Pagination({ page, totalPages }: { page: number; totalPages: number }) 
       {page < totalPages && (
         <a
           href={`?page=${page + 1}`}
-          className="px-3 py-1.5 border border-warm-300 text-sm hover:bg-warm-100 transition-colors"
+          className="px-3 py-1.5 rounded-md border border-warm-300 text-sm hover:bg-warm-100 transition-colors"
         >
           Next
         </a>

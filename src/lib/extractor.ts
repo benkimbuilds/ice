@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { PageMetadata } from "./scraper";
 
-const EXTRACTION_PROMPT = `You are a data extraction assistant. Given the text content of a news article or social media post about a U.S. immigration enforcement incident, extract the following fields. Return ONLY valid JSON with no markdown formatting.
+const EXTRACTION_PROMPT = `You are a data extraction assistant. Given the text content of a news article or social media post about a U.S. immigration enforcement incident, plus any metadata extracted from the page, extract the following fields. Return ONLY valid JSON with no markdown formatting.
 
 {
   "headline": "A short headline summarizing the incident (max 15 words)",
@@ -12,10 +13,11 @@ const EXTRACTION_PROMPT = `You are a data extraction assistant. Given the text c
 }
 
 Rules:
+- The page metadata (og:title, og:description, etc.) is provided by the publisher and is generally reliable for headline and summary. Use it as a strong starting point.
 - Only use tags from the provided list. Use multiple comma-separated tags when applicable.
 - If you cannot determine a field, set it to null.
 - The summary should be factual and neutral in tone.
-- For the date, extract the date the incident occurred (not the article publication date) if possible.
+- For the date, prefer the date the incident occurred over the article publication date. Use the publication date only as a fallback.
 - Return ONLY the JSON object, no other text.`;
 
 export type ExtractedData = {
@@ -27,9 +29,20 @@ export type ExtractedData = {
   country: string | null;
 };
 
+function formatMetadataContext(metadata: PageMetadata): string {
+  const lines: string[] = [];
+  if (metadata.title) lines.push(`Title: ${metadata.title}`);
+  if (metadata.description) lines.push(`Description: ${metadata.description}`);
+  if (metadata.date) lines.push(`Published: ${metadata.date}`);
+  if (metadata.siteName) lines.push(`Source: ${metadata.siteName}`);
+  if (metadata.author) lines.push(`Author: ${metadata.author}`);
+  return lines.length > 0 ? lines.join("\n") : "No metadata available";
+}
+
 export async function extractFromText(
-  text: string,
-  url: string
+  bodyText: string,
+  url: string,
+  metadata: PageMetadata,
 ): Promise<ExtractedData> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -38,13 +51,23 @@ export async function extractFromText(
 
   const anthropic = new Anthropic({ apiKey });
 
+  const userContent = [
+    `URL: ${url}`,
+    ``,
+    `--- Page Metadata ---`,
+    formatMetadataContext(metadata),
+    ``,
+    `--- Article Text ---`,
+    bodyText,
+  ].join("\n");
+
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     messages: [
       {
         role: "user",
-        content: `URL: ${url}\n\nArticle text:\n${text}`,
+        content: userContent,
       },
     ],
     system: EXTRACTION_PROMPT,
@@ -56,8 +79,8 @@ export async function extractFromText(
   }
 
   let jsonStr = content.text.trim();
-  if (jsonStr.startsWith("\`\`\`")) {
-    jsonStr = jsonStr.replace(/^\`\`\`(?:json)?\n?/, "").replace(/\n?\`\`\`$/, "");
+  if (jsonStr.startsWith("```")) {
+    jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
   }
 
   const parsed = JSON.parse(jsonStr);

@@ -1,23 +1,29 @@
+export const INCIDENT_TYPE_TAGS = [
+  { value: "Death", label: "Death" },
+  { value: "Deported", label: "Deportation" },
+  { value: "3rd Country Deportation", label: "Deportation to 3rd Country" },
+  { value: "Detention Conditions", label: "Detention Conditions" },
+  { value: "Detained", label: "Disappearance/Detention" },
+  { value: "Officer Misconduct", label: "Officer Misconduct" },
+  { value: "Officer Use Of Force", label: "Officer Use of Force" },
+  { value: "Protest / Intervention", label: "Protest/Intervention" },
+  { value: "Raid", label: "Raid" },
+  { value: "Vigilante", label: "Vigilante/Bounty Hunter Action" },
+] as const;
+
+export const PERSON_IMPACTED_TAGS = [
+  { value: "LPR", label: "LPR/Greencard Holder" },
+  { value: "Minor/Family", label: "Minor/Family" },
+  { value: "Refugee/Asylum", label: "Refugee/Asylum Seeker" },
+  { value: "TPS", label: "Temporary Protected Status" },
+  { value: "U.S. Citizen", label: "U.S. Citizen" },
+  { value: "Visa / Legal Status", label: "Visa/Legal Status" },
+] as const;
+
+// Combined flat list for backwards compat (admin, queries, etc.)
 export const INCIDENT_TAGS = [
-  "3rd Country Deportation",
-  "Court Process Issue",
-  "DACA",
-  "Death",
-  "Deported",
-  "Detained",
-  "Detention Conditions",
-  "LPR",
-  "Minor/Family",
-  "Native American",
-  "Officer Misconduct",
-  "Officer Use Of Force",
-  "Protest / Intervention",
-  "Raid",
-  "Refugee/Asylum",
-  "TPS",
-  "U.S. Citizen",
-  "Vigilante",
-  "Visa / Legal Status",
+  ...INCIDENT_TYPE_TAGS.map((t) => t.value),
+  ...PERSON_IMPACTED_TAGS.map((t) => t.value),
 ] as const;
 
 export const STATUS = {
@@ -26,3 +32,11 @@ export const STATUS = {
   COMPLETE: "COMPLETE",
   FAILED: "FAILED",
 } as const;
+
+export const TIME_RANGES = [
+  { value: "week", label: "Past Week" },
+  { value: "month", label: "Past Month" },
+  { value: "3months", label: "Past 3 Months" },
+  { value: "year", label: "Past Year" },
+  { value: "all", label: "All Time" },
+] as const;

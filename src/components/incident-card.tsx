@@ -50,10 +50,10 @@ export function IncidentCard({ incident }: { incident: Incident }) {
 
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {tags.map((tag) => (
+          {tags.map((tag, i) => (
             <span
-              key={tag}
-              className="px-2 py-0.5 text-xs bg-warm-100 text-warm-600 border border-warm-200"
+              key={`${tag}-${i}`}
+              className="px-2 py-0.5 text-xs rounded-full bg-warm-100 text-warm-600 border border-warm-200"
             >
               {tag}
             </span>
