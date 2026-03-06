@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
+import { processIncidentPipeline } from "@/lib/pipeline";
 
 export async function processIncident(id: number) {
   const session = await getSession();
   if (!session.isAdmin) throw new Error("Unauthorized");
 
-  // TODO: Will be implemented in Task 8 (scraping pipeline)
-  throw new Error("Scraping pipeline not yet implemented");
+  await processIncidentPipeline(id);
+  revalidatePath("/admin");
+  revalidatePath("/");
 }
