@@ -1,36 +1,140 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Human Impact Project
 
-## Getting Started
+A living database documenting reported incidents of harm related to U.S. Immigration and Customs Enforcement operations.
 
-First, run the development server:
+Built with Next.js, SQLite (Prisma), and Claude API for automated data extraction.
+
+## Prerequisites
+
+- Node.js 20+
+- pnpm (`npm install -g pnpm`)
+- An [Anthropic API key](https://console.anthropic.com/) (for the scraping pipeline)
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+pnpm install
+
+# Copy environment file and fill in values
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Edit `.env`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+DATABASE_URL="file:./dev.db"
+ADMIN_PASSWORD="your-secure-password"
+ANTHROPIC_API_KEY="sk-ant-..."
+SESSION_SECRET="generate-a-random-32-char-string"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Generate a session secret:
 
-## Learn More
+```bash
+openssl rand -hex 16
+```
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Set up the database
+npx prisma db push
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Seed with existing data (optional, imports data.csv)
+npx prisma db seed
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Start development server
+pnpm dev
+```
 
-## Deploy on Vercel
+Open [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Usage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Public site (`/`)
+
+Browse, search, and filter incidents by keyword, location, incident type, person impacted, country of origin, and date range.
+
+### Admin dashboard (`/admin`)
+
+Login with the `ADMIN_PASSWORD` from your `.env` file.
+
+- **Add incidents** -- Enter a URL (minimum) and optional fields. The scraping pipeline automatically fetches and extracts data from the URL using Claude AI.
+- **Edit/delete** -- Inline editing for any incident field.
+- **Re-scrape** -- Click "Scrape" on any row to re-run the extraction pipeline.
+- **Scrape All Incomplete** -- Batch-process all RAW/FAILED rows.
+- **CSV upload** -- Bulk import incidents from a CSV file. Expected columns: `link`, `date`, `location`, `headline`, `summary`, `incident_type`, `country_of_origin`.
+- **Search/filter** -- Search across all fields and filter by status (RAW, COMPLETE, FAILED).
+
+## Deploy
+
+### Option A: VPS (recommended for SQLite)
+
+Deploy to a VPS (Railway, Render, Fly.io, or a $5/mo DigitalOcean droplet):
+
+```bash
+# Build
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+The SQLite file lives at `prisma/dev.db`. Back it up periodically.
+
+### Option B: Vercel + Turso
+
+SQLite doesn't persist on Vercel's serverless functions (ephemeral filesystem). Use [Turso](https://turso.tech/) (SQLite over HTTP, generous free tier):
+
+1. Create a Turso database
+2. Install the driver: `pnpm add @libsql/client`
+3. Update your `DATABASE_URL` to the Turso connection string
+4. Deploy to Vercel
+
+### Environment variables
+
+Set these on your hosting platform:
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | SQLite file path or Turso URL |
+| `ADMIN_PASSWORD` | Password for the admin dashboard |
+| `ANTHROPIC_API_KEY` | Anthropic API key for scraping |
+| `SESSION_SECRET` | Random 32+ char string for session encryption |
+
+## Project structure
+
+```
+src/
+  app/
+    page.tsx              # Public browse page
+    layout.tsx            # Global layout (dark header)
+    admin/
+      page.tsx            # Admin dashboard
+      login/              # Admin login
+      incidents/          # Server actions (CRUD, scrape, CSV)
+  components/
+    search-filters.tsx    # Public search/filter UI
+    incident-card.tsx     # Expandable incident card
+    incident-list.tsx     # List with time range buttons
+    admin/                # Admin-specific components
+  lib/
+    db.ts                 # Prisma client singleton
+    queries.ts            # Database query functions
+    scraper.ts            # HTML fetcher + metadata extractor
+    extractor.ts          # Claude API structured extraction
+    pipeline.ts           # Scrape + extract + save pipeline
+    constants.ts          # Tags, statuses
+    session.ts            # Auth session utilities
+prisma/
+  schema.prisma           # Database schema
+  seed.ts                 # CSV seed script
+data.csv                  # Source data
+```
+
+## Tech stack
+
+- **Next.js** -- App Router, server components, server actions
+- **Prisma + SQLite** -- Zero-config database
+- **Tailwind CSS** -- Styling
+- **Claude API** (Haiku) -- LLM-powered data extraction from scraped articles
+- **iron-session** -- Encrypted cookie sessions for admin auth
