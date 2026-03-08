@@ -1,6 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { PageMetadata } from "./scraper";
 
+const SYNTHESIS_PROMPT = `You are a data synthesis assistant. Given multiple news articles or sources about the same immigration enforcement incident involving the same individual, synthesize a single unified headline and summary. Return ONLY valid JSON with no markdown formatting.
+
+{
+  "headline": "A short synthesized headline summarizing the full picture of the incident (max 15 words)",
+  "summary": "A 3-5 sentence factual summary synthesizing all sources, mentioning key developments or updates if the situation evolved over time"
+}
+
+Rules:
+- The headline and summary must represent ALL sources, not just one.
+- If the situation changed over time (e.g. detained → released, or appealed), reflect that arc.
+- Remain factual and neutral in tone.
+- Return ONLY the JSON object, no other text.`;
+
 const EXTRACTION_PROMPT = `You are a data extraction assistant. Given the text content of a news article or social media post about a U.S. immigration enforcement incident, plus any metadata extracted from the page, extract the following fields. Return ONLY valid JSON with no markdown formatting.
 
 {
@@ -92,5 +105,59 @@ export async function extractFromText(
     summary: parsed.summary || null,
     incidentType: parsed.incidentType || null,
     country: parsed.country || null,
+  };
+}
+
+export async function synthesizeIncidents(
+  incidents: Array<{
+    url: string;
+    headline: string | null;
+    summary: string | null;
+  }>
+): Promise<{ headline: string; summary: string }> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const anthropic = new Anthropic({ apiKey });
+
+  const content = incidents
+    .map((inc, i) =>
+      [
+        `--- Source ${i + 1} ---`,
+        `URL: ${inc.url}`,
+        inc.headline ? `Headline: ${inc.headline}` : null,
+        inc.summary ? `Summary: ${inc.summary}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    )
+    .join("\n\n");
+
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 512,
+    system: SYNTHESIS_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: `Synthesize these sources about the same individual:\n\n${content}`,
+      },
+    ],
+  });
+
+  const responseContent = message.content[0];
+  if (responseContent.type !== "text") {
+    throw new Error("Unexpected response type from Claude");
+  }
+
+  let jsonStr = responseContent.text.trim();
+  if (jsonStr.startsWith("```")) {
+    jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+  }
+
+  const parsed = JSON.parse(jsonStr);
+  return {
+    headline: parsed.headline || "Untitled incident",
+    summary: parsed.summary || "",
   };
 }

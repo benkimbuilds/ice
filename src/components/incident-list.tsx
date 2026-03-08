@@ -8,6 +8,7 @@ import { TIME_RANGES } from "@/lib/constants";
 type Incident = {
   id: number;
   url: string;
+  altSources: string | null;
   date: string | null;
   location: string | null;
   headline: string | null;

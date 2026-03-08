@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { parseAltSources } from "@/lib/sources";
 
 type Incident = {
   id: number;
   url: string;
+  altSources: string | null;
   date: string | null;
   location: string | null;
   headline: string | null;
@@ -19,6 +21,8 @@ export function IncidentCard({ incident }: { incident: Incident }) {
     ?.split(",")
     .map((t) => t.trim())
     .filter(Boolean) || [];
+
+  const allSources = [incident.url, ...parseAltSources(incident.altSources)];
 
   return (
     <article
@@ -68,15 +72,20 @@ export function IncidentCard({ incident }: { incident: Incident }) {
               {incident.summary}
             </p>
           )}
-          <a
-            href={incident.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-block text-sm text-warm-900 underline hover:text-warm-600"
-          >
-            Read source article →
-          </a>
+          <div className="space-y-1">
+            {allSources.map((src, i) => (
+              <a
+                key={src}
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="block text-sm text-warm-900 underline hover:text-warm-600"
+              >
+                {i === 0 ? "Read source article" : `Additional source ${i}`} →
+              </a>
+            ))}
+          </div>
         </div>
       )}
 

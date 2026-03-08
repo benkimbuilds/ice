@@ -81,6 +81,7 @@ export async function getIncidents(filters: IncidentFilters = {}) {
       select: {
         id: true,
         url: true,
+        altSources: true,
         date: true,
         location: true,
         headline: true,
