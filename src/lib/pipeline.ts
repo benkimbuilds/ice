@@ -3,12 +3,25 @@ import { scrapeUrl } from "./scraper";
 import { extractFromText } from "./extractor";
 import { parseIncidentDate, geocodeLocation } from "./geocode";
 
+const SOCIAL_MEDIA_HOSTS = ["instagram.com", "tiktok.com", "facebook.com/reel"];
+
+function isSocialMediaUrl(url: string): boolean {
+  return SOCIAL_MEDIA_HOSTS.some((h) => url.includes(h));
+}
+
 export async function processIncidentPipeline(incidentId: number) {
   const incident = await prisma.incident.findUnique({
     where: { id: incidentId },
   });
 
   if (!incident) throw new Error("Incident not found");
+
+  // Social media posts (Instagram Reels, TikTok, etc.) need a different pipeline
+  // that uses Claude Vision + Exa news search instead of direct HTML scraping.
+  if (isSocialMediaUrl(incident.url)) {
+    const { processInstagramPipeline } = await import("./instagram-pipeline");
+    return processInstagramPipeline(incidentId);
+  }
 
   await prisma.incident.update({
     where: { id: incidentId },

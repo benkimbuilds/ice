@@ -13,6 +13,7 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@prisma/client": "^6.19.2",
     "csv-parse": "^6.1.0",
+    "exa-js": "^2.7.0",
     "iron-session": "^8.0.4",
     "leaflet": "^1.9.4",
     "next": "16.1.6",
