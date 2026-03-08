@@ -63,7 +63,7 @@ export async function getIncidents(filters: IncidentFilters = {}) {
   if (range && range !== "all") {
     const cutoff = getDateCutoff(range);
     if (cutoff) {
-      AND.push({ createdAt: { gte: cutoff } });
+      AND.push({ parsedDate: { gte: cutoff } });
     }
   }
 
@@ -75,12 +75,13 @@ export async function getIncidents(filters: IncidentFilters = {}) {
   const [incidents, total] = await Promise.all([
     prisma.incident.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ parsedDate: "desc" }, { createdAt: "desc" }],
       skip: (page - 1) * pageSize,
       take: pageSize,
       select: {
         id: true,
         url: true,
+        altSources: true,
         date: true,
         location: true,
         headline: true,
@@ -98,6 +99,25 @@ export async function getIncidents(filters: IncidentFilters = {}) {
 export async function getTotalWithHeadline(): Promise<number> {
   return prisma.incident.count({
     where: { headline: { not: null } },
+  });
+}
+
+export async function getMapIncidents() {
+  return prisma.incident.findMany({
+    where: {
+      headline: { not: null },
+      latitude: { not: null },
+      longitude: { not: null },
+    },
+    select: {
+      id: true,
+      headline: true,
+      date: true,
+      location: true,
+      latitude: true,
+      longitude: true,
+      incidentType: true,
+    },
   });
 }
 

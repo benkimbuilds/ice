@@ -3,9 +3,53 @@
 import { useState } from "react";
 import { createIncident } from "@/app/admin/incidents/actions";
 
+function AltSourcesList({
+  sources,
+  onChange,
+}: {
+  sources: string[];
+  onChange: (sources: string[]) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      {sources.map((src, i) => (
+        <div key={i} className="flex gap-2">
+          <input
+            name="altSources[]"
+            value={src}
+            onChange={(e) => {
+              const next = [...sources];
+              next[i] = e.target.value;
+              onChange(next);
+            }}
+            placeholder="https://..."
+            className="flex-1 px-3 py-2 border border-warm-300 text-sm focus:outline-none focus:border-warm-900"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(sources.filter((_, j) => j !== i))}
+            className="px-2 text-warm-400 hover:text-red-600 text-lg leading-none"
+            title="Remove"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...sources, ""])}
+        className="text-xs text-warm-500 hover:text-warm-900 underline"
+      >
+        + Add source URL
+      </button>
+    </div>
+  );
+}
+
 export function AddIncidentForm() {
   const [open, setOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [altSources, setAltSources] = useState<string[]>([]);
 
   if (!open) {
     return (
@@ -25,6 +69,7 @@ export function AddIncidentForm() {
         try {
           await createIncident(formData);
           setOpen(false);
+          setAltSources([]);
         } catch (e: any) {
           alert(e.message);
         } finally {
@@ -62,6 +107,10 @@ export function AddIncidentForm() {
           <label className="block text-xs font-medium text-warm-500 mb-1">Summary</label>
           <textarea name="summary" rows={2} className="w-full px-3 py-2 border border-warm-300 text-sm focus:outline-none focus:border-warm-900" />
         </div>
+        <div className="col-span-2">
+          <label className="block text-xs font-medium text-warm-500 mb-1">Additional Sources</label>
+          <AltSourcesList sources={altSources} onChange={setAltSources} />
+        </div>
       </div>
       <div className="flex gap-2">
         <button
@@ -73,7 +122,7 @@ export function AddIncidentForm() {
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={() => { setOpen(false); setAltSources([]); }}
           className="px-4 py-2 text-sm text-warm-500 hover:text-warm-900"
         >
           Cancel

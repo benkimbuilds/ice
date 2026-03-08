@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
 import { parse } from "csv-parse/sync";
+import { serializeAltSources } from "@/lib/sources";
 
 export async function uploadCsv(formData: FormData): Promise<string> {
   const session = await getSession();
@@ -32,13 +33,21 @@ export async function uploadCsv(formData: FormData): Promise<string> {
 
     const hasData = row.headline || row.Headline || row.summary || row.Summary || row.incident_type || row.incidentType;
 
+    // Collect all alt source URLs from the row (comma-separated or individual columns)
+    const rawAlt = row.alt_source || row.altSources || row.alt_sources || "";
+    const altSourceUrls = rawAlt
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    const altSources = serializeAltSources(altSourceUrls);
+
     try {
       await prisma.incident.upsert({
         where: { url: url.trim() },
         update: {},
         create: {
           url: url.trim(),
-          altSources: row.alt_source || row.altSources || null,
+          altSources,
           date: row.date || row.Date || null,
           location: row.location || row.Location || null,
           headline: row.headline || row.Headline || null,

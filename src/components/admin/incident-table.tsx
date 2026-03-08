@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { updateIncident, deleteIncident } from "@/app/admin/incidents/actions";
+import { updateIncident, deleteIncident, mergeIncidents } from "@/app/admin/incidents/actions";
 import { processIncident } from "@/app/admin/incidents/process-action";
+import { parseAltSources } from "@/lib/sources";
 
 type Incident = {
   id: number;
   url: string;
+  altSources: string | null;
   date: string | null;
   location: string | null;
   headline: string | null;
@@ -32,6 +34,49 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function AltSourcesEditor({
+  sources,
+  onChange,
+}: {
+  sources: string[];
+  onChange: (sources: string[]) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      {sources.map((src, i) => (
+        <div key={i} className="flex gap-1.5">
+          <input
+            name="altSources[]"
+            value={src}
+            onChange={(e) => {
+              const next = [...sources];
+              next[i] = e.target.value;
+              onChange(next);
+            }}
+            placeholder="https://..."
+            className="flex-1 px-2 py-1 border border-warm-300 text-xs focus:outline-none focus:border-warm-900"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(sources.filter((_, j) => j !== i))}
+            className="px-1.5 text-warm-400 hover:text-red-600 text-base leading-none"
+            title="Remove"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...sources, ""])}
+        className="text-xs text-warm-500 hover:text-warm-900 underline"
+      >
+        + Add source
+      </button>
+    </div>
+  );
+}
+
 function EditRow({
   incident,
   onClose,
@@ -40,6 +85,9 @@ function EditRow({
   onClose: () => void;
 }) {
   const [isPending, setIsPending] = useState(false);
+  const [altSources, setAltSources] = useState<string[]>(
+    parseAltSources(incident.altSources)
+  );
 
   return (
     <tr className="bg-warm-50">
@@ -84,6 +132,10 @@ function EditRow({
             <label className="block text-xs font-medium text-warm-500 mb-1">Summary</label>
             <textarea name="summary" defaultValue={incident.summary || ""} rows={3} className="w-full px-2 py-1.5 border border-warm-300 text-sm" />
           </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-warm-500 mb-1">Additional Sources</label>
+            <AltSourcesEditor sources={altSources} onChange={setAltSources} />
+          </div>
           <div className="col-span-2 flex gap-2">
             <button type="submit" disabled={isPending} className="px-3 py-1.5 bg-warm-900 text-white text-sm disabled:opacity-50">
               {isPending ? "Saving..." : "Save"}
@@ -103,6 +155,8 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [merging, setMerging] = useState(false);
 
   const filtered = incidents.filter((inc) => {
     if (statusFilter !== "ALL" && inc.status !== statusFilter) return false;
@@ -118,6 +172,30 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
       inc.date?.toLowerCase().includes(q)
     );
   });
+
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleMerge() {
+    const ids = Array.from(selected);
+    if (ids.length < 2) return;
+    if (!confirm(`Merge ${ids.length} incidents into one? This will synthesize a new headline and summary using AI and delete the duplicate records.`)) return;
+    setMerging(true);
+    try {
+      await mergeIncidents(ids);
+      setSelected(new Set());
+    } catch (e: any) {
+      alert("Merge failed: " + e.message);
+    } finally {
+      setMerging(false);
+    }
+  }
 
   return (
     <div>
@@ -143,20 +221,39 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
         <span className="text-xs text-warm-400">
           {filtered.length} of {incidents.length}
         </span>
+        {selected.size >= 2 && (
+          <button
+            onClick={handleMerge}
+            disabled={merging}
+            className="px-3 py-2 bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 rounded-md"
+          >
+            {merging ? "Merging..." : `Merge ${selected.size} selected`}
+          </button>
+        )}
+        {selected.size > 0 && (
+          <button
+            onClick={() => setSelected(new Set())}
+            className="text-xs text-warm-400 hover:text-warm-700 underline"
+          >
+            Clear selection
+          </button>
+        )}
       </div>
     <div className="overflow-x-auto">
       <table className="w-full text-sm table-fixed">
         <colgroup>
+          <col className="w-[36px]" />
           <col className="w-[80px]" />
-          <col className="w-[30%]" />
+          <col className="w-[28%]" />
           <col className="w-[80px]" />
           <col className="w-[12%]" />
-          <col className="w-[15%]" />
-          <col className="w-[20%]" />
+          <col className="w-[14%]" />
+          <col className="w-[18%]" />
           <col className="w-[100px]" />
         </colgroup>
         <thead>
           <tr className="border-b border-warm-300 text-left">
+            <th className="py-2 pr-2"></th>
             <th className="py-2 pr-3 font-medium text-warm-500">Status</th>
             <th className="py-2 pr-3 font-medium text-warm-500">Headline</th>
             <th className="py-2 pr-3 font-medium text-warm-500">Date</th>
@@ -175,7 +272,15 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
                 onClose={() => setEditingId(null)}
               />
             ) : (
-              <tr key={inc.id} className="border-b border-warm-100 hover:bg-warm-50">
+              <tr key={inc.id} className={`border-b border-warm-100 hover:bg-warm-50 ${selected.has(inc.id) ? "bg-indigo-50" : ""}`}>
+                <td className="py-2 pr-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(inc.id)}
+                    onChange={() => toggleSelect(inc.id)}
+                    className="accent-indigo-600"
+                  />
+                </td>
                 <td className="py-2 pr-3">
                   <StatusBadge status={inc.status} />
                   {inc.status === "FAILED" && inc.errorMessage && (
@@ -186,6 +291,11 @@ export function IncidentTable({ incidents }: { incidents: Incident[] }) {
                 </td>
                 <td className="py-2 pr-3 truncate" title={inc.headline || ""}>
                   {inc.headline || <span className="text-warm-300 italic">No headline</span>}
+                  {parseAltSources(inc.altSources).length > 0 && (
+                    <span className="ml-1 text-xs text-indigo-500" title="Has additional sources">
+                      +{parseAltSources(inc.altSources).length}
+                    </span>
+                  )}
                 </td>
                 <td className="py-2 pr-3 truncate">{inc.date || "—"}</td>
                 <td className="py-2 pr-3 truncate">{inc.location || "—"}</td>
