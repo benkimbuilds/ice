@@ -16,11 +16,13 @@ type Incident = {
   country: string | null;
 };
 
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 function formatDate(dateStr: string | null): string | null {
   if (!dateStr) return null;
   const d = new Date(dateStr + "T12:00:00Z");
-  if (isNaN(d.getTime())) return dateStr;
-  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
+  if (isNaN(d.getTime())) return null;
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
 const incidentTypeSet = new Set<string>(INCIDENT_TYPE_TAGS.map((t) => t.value));

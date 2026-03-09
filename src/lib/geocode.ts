@@ -31,6 +31,19 @@ export function parseIncidentDate(dateStr: string | null): Date | null {
     return new Date(new Date().getFullYear(), Number(m[1]) - 1, Number(m[2]));
   }
 
+  // M/YYYY or YYYY/M (month + year only — use 1st of month)
+  m = d.match(/^(\d{1,2})[/-](\d{4})$/);
+  if (m) {
+    return new Date(Number(m[2]), Number(m[1]) - 1, 1);
+  }
+  m = d.match(/^(\d{4})[/-](\d{1,2})$/);
+  if (m) {
+    return new Date(Number(m[1]), Number(m[2]) - 1, 1);
+  }
+
+  // Literal "null" string
+  if (d === "null") return null;
+
   return null;
 }
 
