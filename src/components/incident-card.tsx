@@ -37,10 +37,12 @@ function getTagLabel(value: string): string {
 export function IncidentCard({ incident }: { incident: Incident }) {
   const [expanded, setExpanded] = useState(false);
 
-  const rawTags = incident.incidentType
-    ?.split(",")
-    .map((t) => t.trim())
-    .filter(Boolean) ?? [];
+  const rawTags = [...new Set(
+    incident.incidentType
+      ?.split(",")
+      .map((t) => t.trim())
+      .filter(Boolean) ?? []
+  )];
 
   const incidentTypeTags = rawTags.filter((t) => incidentTypeSet.has(t));
   const personImpactedTags = rawTags.filter((t) => personImpactedSet.has(t));
@@ -129,7 +131,7 @@ export function IncidentCard({ incident }: { incident: Incident }) {
                 </p>
               )}
               <div className="flex flex-col gap-1">
-                {allSources.map((src, i) => (
+                {[...new Set(allSources)].map((src, i) => (
                   <a
                     key={src}
                     href={src}
