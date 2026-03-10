@@ -9,7 +9,14 @@
  *  3. Exa findSimilar + search  →  discovers news articles covering the same incident
  *  4. Claude extraction         →  structures everything into a typed incident record
  *
- * The whole flow runs server-side and works on Railway (no headless browser needed).
+ * New flow:
+ *  1. Embed scrape + Vision  →  caption text + image description
+ *  2. Claude extraction      →  generates a clean headline from the caption
+ *  3. Exa news search        →  searches for real news articles using that headline
+ *  4. Claude extraction      →  re-extracts structured data from the best news article
+ *
+ * The Instagram post stays as the primary URL; news article URLs go into altSources.
+ * findSimilar is intentionally NOT used — it tends to return other Instagram posts.
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -137,57 +144,42 @@ type ExaResult = {
   author?: string | null;
 };
 
-const SOCIAL_DOMAINS = ["instagram.com", "facebook.com", "tiktok.com", "twitter.com", "x.com"];
+const SOCIAL_DOMAINS = [
+  "instagram.com",
+  "facebook.com",
+  "tiktok.com",
+  "twitter.com",
+  "x.com",
+  "threads.net",
+];
 
+function isSocialUrl(url: string): boolean {
+  return SOCIAL_DOMAINS.some((d) => url.includes(d));
+}
+
+/**
+ * Search Exa for real news articles about the incident.
+ * Uses the extracted headline (not raw caption) so results are specific and on-topic.
+ * Does NOT use findSimilar — that tends to return other Instagram posts.
+ */
 async function findNewsArticles(
-  instagramUrl: string,
-  searchQuery: string | null,
+  headline: string,
   exa: Exa
 ): Promise<ExaResult[]> {
-  const results: ExaResult[] = [];
-  const seenUrls = new Set<string>([instagramUrl]);
-
-  const add = (r: ExaResult) => {
-    if (r.url && !seenUrls.has(r.url) && !SOCIAL_DOMAINS.some((d) => r.url.includes(d))) {
-      seenUrls.add(r.url);
-      results.push(r);
-    }
-  };
-
-  // Strategy 1: keyword news search from caption/vision (primary — finds actual news articles)
-  if (searchQuery) {
-    try {
-      const searched = await (exa as any).search(
-        `ICE immigration enforcement: ${searchQuery.slice(0, 250)}`,
-        {
-          numResults: 8,
-          type: "news",
-          excludeDomains: SOCIAL_DOMAINS,
-          contents: { text: { maxCharacters: 4000 } },
-        }
-      );
-      (searched.results ?? []).forEach(add);
-    } catch (err: any) {
-      console.warn("[instagram-pipeline] keyword search failed:", err.message);
-    }
+  try {
+    const searched = await (exa as any).search(headline, {
+      numResults: 5,
+      type: "news",
+      excludeDomains: SOCIAL_DOMAINS,
+      contents: { text: { maxCharacters: 4000 } },
+    });
+    return ((searched.results ?? []) as ExaResult[])
+      .filter((r) => r.url && !isSocialUrl(r.url))
+      .sort((a, b) => (b.text?.length ?? 0) - (a.text?.length ?? 0));
+  } catch (err: any) {
+    console.warn("[instagram-pipeline] news search failed:", err.message);
+    return [];
   }
-
-  // Strategy 2: findSimilar as fallback if keyword search didn't find enough
-  if (results.length < 2) {
-    try {
-      const similar = await exa.findSimilar(instagramUrl, {
-        numResults: 6,
-        excludeDomains: SOCIAL_DOMAINS,
-        contents: { text: { maxCharacters: 4000 } as any },
-      });
-      (similar.results ?? []).forEach(add);
-    } catch (err: any) {
-      console.warn("[instagram-pipeline] findSimilar failed:", err.message);
-    }
-  }
-
-  // Sort by text length descending (more text = more useful article)
-  return results.sort((a, b) => (b.text?.length ?? 0) - (a.text?.length ?? 0));
 }
 
 // ─── Main pipeline ────────────────────────────────────────────────────────────
@@ -221,57 +213,94 @@ export async function processInstagramPipeline(incidentId: number): Promise<void
       visionDesc = await analyzeImageWithVision(embed.imageUrl, anthropicKey);
     }
 
-    // Build a rich search query from all context we have
-    const contextParts = [
-      embed?.caption ? `Caption: ${embed.caption.slice(0, 300)}` : null,
-      visionDesc ? `Visual: ${visionDesc.slice(0, 200)}` : null,
-      embed?.accountName ? `Account: @${embed.accountName}` : null,
-    ].filter(Boolean);
-    const searchQuery = contextParts.length > 0 ? contextParts.join(" | ") : null;
-
-    // ── Step 3: Exa — find news articles covering the same incident ─────────
-    console.log(`[instagram-pipeline] Searching Exa for news coverage…`);
-    const articles = await findNewsArticles(incident.url, searchQuery, exa);
-
-    if (articles.length === 0) {
-      throw new Error(
-        "Exa found no news articles for this Instagram post. " +
-          "Try adding a URL manually or check back later when more coverage exists."
-      );
-    }
-
-    // ── Step 4: Extract structured data from the best article ──────────────
-    const best = articles[0];
-    const bodyText = [
+    // ── Step 3: Extract headline from caption first (needed for a good search query) ──
+    console.log(`[instagram-pipeline] Extracting headline from caption…`);
+    const captionContext = [
       visionDesc ? `[Instagram image description]\n${visionDesc}` : null,
       embed?.caption ? `[Instagram caption]\n${embed.caption}` : null,
-      `[News article: ${best.url}]\n${best.text ?? ""}`,
     ]
       .filter(Boolean)
       .join("\n\n")
-      .slice(0, 12000);
+      .slice(0, 6000);
 
-    const extracted = await extractFromText(bodyText, best.url, {
-      title: best.title ?? null,
-      description: null,
-      date: best.publishedDate ?? null,
-      image: null,
-      siteName: (() => {
-        try {
-          return new URL(best.url).hostname.replace("www.", "");
-        } catch {
-          return null;
-        }
-      })(),
-      author: best.author ?? null,
-      jsonLd: null,
-    });
+    const preliminary = captionContext
+      ? await extractFromText(captionContext, incident.url, {
+          title: null,
+          description: null,
+          date: null,
+          image: null,
+          siteName: null,
+          author: null,
+          jsonLd: null,
+        })
+      : null;
 
-    // ── Step 5: Build alt sources ───────────────────────────────────────────
-    // The Instagram post stays as the primary URL; all news articles go into altSources
-    const altSourceUrls = articles.slice(0, 5).map((r) => r.url);
+    // Use the extracted headline as the Exa search query so results are specific.
+    // Fall back to a trimmed caption slice only if Claude couldn't produce a headline.
+    const searchQuery =
+      preliminary?.headline?.trim() ||
+      embed?.caption?.slice(0, 200)?.trim() ||
+      null;
 
-    // ── Step 6: Geocode ────────────────────────────────────────────────────
+    // ── Step 4: Exa — search for news articles by headline ─────────────────
+    let articles: ExaResult[] = [];
+    if (searchQuery) {
+      console.log(`[instagram-pipeline] Searching Exa for: "${searchQuery}"`);
+      articles = await findNewsArticles(searchQuery, exa);
+    }
+
+    // ── Step 5: Extract structured data ────────────────────────────────────
+    // If we found real news articles, extract from the best one (higher quality).
+    // Otherwise fall back to the preliminary caption-only extraction.
+    let extracted = preliminary;
+
+    if (articles.length > 0) {
+      const best = articles[0];
+      const bodyText = [
+        visionDesc ? `[Instagram image description]\n${visionDesc}` : null,
+        embed?.caption ? `[Instagram caption]\n${embed.caption}` : null,
+        `[News article: ${best.url}]\n${best.text ?? ""}`,
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+        .slice(0, 12000);
+
+      extracted = await extractFromText(bodyText, best.url, {
+        title: best.title ?? null,
+        description: null,
+        date: best.publishedDate ?? null,
+        image: null,
+        siteName: (() => {
+          try {
+            return new URL(best.url).hostname.replace("www.", "");
+          } catch {
+            return null;
+          }
+        })(),
+        author: best.author ?? null,
+        jsonLd: null,
+      });
+    }
+
+    if (!extracted) {
+      throw new Error(
+        "Could not extract incident data from Instagram caption or news articles."
+      );
+    }
+
+    // ── Step 6: Build alt sources ───────────────────────────────────────────
+    // Instagram post stays as primary URL; news articles go into altSources.
+    // Strip any social-media URLs that may have been saved by earlier pipeline runs.
+    const existingAltSources = (
+      JSON.parse(incident.altSources ?? "[]") as string[]
+    ).filter((u) => !isSocialUrl(u));
+    const newNewsUrls = articles.slice(0, 3).map((r) => r.url);
+    const altSourceUrls = [
+      ...existingAltSources,
+      ...newNewsUrls.filter((u) => !existingAltSources.includes(u)),
+    ];
+
+    // ── Step 7: Geocode ────────────────────────────────────────────────────
     const finalLocation = incident.location ?? extracted.location;
     let latitude = incident.latitude;
     let longitude = incident.longitude;
@@ -285,7 +314,7 @@ export async function processInstagramPipeline(incidentId: number): Promise<void
 
     const parsedDate = parseIncidentDate(incident.date ?? extracted.date);
 
-    // ── Step 7: Save ───────────────────────────────────────────────────────
+    // ── Step 8: Save ───────────────────────────────────────────────────────
     await prisma.incident.update({
       where: { id: incidentId },
       data: {
@@ -298,12 +327,8 @@ export async function processInstagramPipeline(incidentId: number): Promise<void
         summary: incident.summary ?? extracted.summary,
         incidentType: incident.incidentType ?? extracted.incidentType,
         country: incident.country ?? extracted.country,
-        // Merge any existing altSources with the newly found news URLs
-        altSources: serializeAltSources([
-          ...JSON.parse(incident.altSources ?? "[]") as string[],
-          ...altSourceUrls,
-        ]),
-        rawHtml: bodyText.slice(0, 50000),
+        altSources: serializeAltSources(altSourceUrls),
+        rawHtml: captionContext.slice(0, 50000),
         status: "COMPLETE",
         errorMessage: null,
       },
@@ -311,7 +336,8 @@ export async function processInstagramPipeline(incidentId: number): Promise<void
 
     console.log(
       `[instagram-pipeline] ✅ #${incidentId} complete — ` +
-        `${articles.length} articles found, ${altSourceUrls.length} saved as alt sources.`
+        `"${extracted.headline}" | ` +
+        `${articles.length} news articles found, ${newNewsUrls.length} saved as alt sources.`
     );
   } catch (error: any) {
     await prisma.incident.update({
