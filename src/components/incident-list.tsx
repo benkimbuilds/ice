@@ -20,12 +20,14 @@ export function IncidentList({
   totalAll,
   page,
   totalPages,
+  editMode = false,
 }: {
   incidents: Incident[];
   total: number;
   totalAll: number;
   page: number;
   totalPages: number;
+  editMode?: boolean;
 }) {
   return (
     <div>
@@ -46,7 +48,7 @@ export function IncidentList({
         <>
           <div>
             {incidents.map((incident) => (
-              <IncidentCard key={incident.id} incident={incident} />
+              <IncidentCard key={incident.id} incident={incident} editMode={editMode} />
             ))}
           </div>
           {totalPages > 1 && (

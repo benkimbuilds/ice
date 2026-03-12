@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { parseAltSources } from "@/lib/sources";
 import { INCIDENT_TYPE_TAGS, PERSON_IMPACTED_TAGS } from "@/lib/constants";
 
@@ -108,8 +109,38 @@ function getTagLabel(value: string): string {
   );
 }
 
-export function IncidentCard({ incident }: { incident: Incident }) {
+function serializeAltSources(urls: string[]): string | null {
+  const f = urls.map((u) => u.trim()).filter(Boolean);
+  return f.length > 0 ? JSON.stringify(f) : null;
+}
+
+export function IncidentCard({
+  incident,
+  editMode = false,
+}: {
+  incident: Incident;
+  editMode?: boolean;
+}) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Edit form state — initialized from incident
+  const altSourcesList = parseAltSources(incident.altSources);
+  const [form, setForm] = useState({
+    headline: incident.headline ?? "",
+    date: incident.date ?? "",
+    location: incident.location ?? "",
+    summary: incident.summary ?? "",
+    incidentType: incident.incidentType ?? "",
+    country: incident.country ?? "",
+    url: incident.url ?? "",
+    altSources: altSourcesList.join("\n"),
+  });
 
   const rawTags = [...new Set(
     incident.incidentType
@@ -130,10 +161,257 @@ export function IncidentCard({ incident }: { incident: Incident }) {
   const primarySource = allSources.find((s) => !isSocial(s)) ?? allSources[0];
   const hasMeta = incident.date || incident.location || incident.country;
 
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    try {
+      // Serialize altSources from textarea (one URL per line)
+      const altSourceUrls = form.altSources
+        .split("\n")
+        .map((u) => u.trim())
+        .filter(Boolean)
+        .filter((u) => u !== form.url.trim());
+
+      const res = await fetch(`/api/incidents/${incident.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-edit-password": "acab",
+        },
+        body: JSON.stringify({
+          headline: form.headline,
+          date: form.date,
+          location: form.location,
+          summary: form.summary,
+          incidentType: form.incidentType,
+          country: form.country,
+          url: form.url,
+          altSources: serializeAltSources(altSourceUrls),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Save failed");
+      } else {
+        setEditing(false);
+        router.refresh();
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}`, {
+        method: "DELETE",
+        headers: { "x-edit-password": "acab" },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Delete failed");
+        setDeleting(false);
+      } else {
+        router.refresh();
+      }
+    } catch {
+      setError("Network error");
+      setDeleting(false);
+    }
+  }
+
+  function startEditing() {
+    // Re-initialize form from current incident data
+    setForm({
+      headline: incident.headline ?? "",
+      date: incident.date ?? "",
+      location: incident.location ?? "",
+      summary: incident.summary ?? "",
+      incidentType: incident.incidentType ?? "",
+      country: incident.country ?? "",
+      url: incident.url ?? "",
+      altSources: parseAltSources(incident.altSources).join("\n"),
+    });
+    setConfirmDelete(false);
+    setError(null);
+    setEditing(true);
+    setExpanded(false);
+  }
+
+  // ---- EDIT FORM VIEW ----
+  if (editing) {
+    return (
+      <article className="border-b border-warm-200 py-4 px-3 -mx-3 bg-amber-50/60">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-amber-700">
+              Editing #{incident.id}
+            </span>
+            <button
+              onClick={() => { setEditing(false); setError(null); setConfirmDelete(false); }}
+              className="text-xs text-warm-400 hover:text-warm-700 transition-colors"
+            >
+              ✕ Cancel
+            </button>
+          </div>
+
+          {/* Headline */}
+          <div>
+            <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Headline</label>
+            <input
+              type="text"
+              value={form.headline}
+              onChange={(e) => setForm({ ...form, headline: e.target.value })}
+              className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500"
+              placeholder="Headline"
+            />
+          </div>
+
+          {/* Date + Location row */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Date</label>
+              <input
+                type="text"
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500"
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Location</label>
+              <input
+                type="text"
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500"
+                placeholder="City, State"
+              />
+            </div>
+          </div>
+
+          {/* Country + Incident Type row */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Country</label>
+              <input
+                type="text"
+                value={form.country}
+                onChange={(e) => setForm({ ...form, country: e.target.value })}
+                className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500"
+                placeholder="Country of origin"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Tags (comma-separated)</label>
+              <input
+                type="text"
+                value={form.incidentType}
+                onChange={(e) => setForm({ ...form, incidentType: e.target.value })}
+                className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500"
+                placeholder="Detained, LPR"
+              />
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div>
+            <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Summary</label>
+            <textarea
+              value={form.summary}
+              onChange={(e) => setForm({ ...form, summary: e.target.value })}
+              rows={4}
+              className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500 resize-y"
+              placeholder="Summary of incident..."
+            />
+          </div>
+
+          {/* Primary URL */}
+          <div>
+            <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Primary URL</label>
+            <input
+              type="url"
+              value={form.url}
+              onChange={(e) => setForm({ ...form, url: e.target.value })}
+              className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500"
+              placeholder="https://..."
+            />
+          </div>
+
+          {/* Alt Sources */}
+          <div>
+            <label className="block text-[11px] font-semibold text-warm-500 mb-0.5 uppercase tracking-wide">Alt Sources (one URL per line)</label>
+            <textarea
+              value={form.altSources}
+              onChange={(e) => setForm({ ...form, altSources: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-1.5 rounded border border-warm-300 text-sm bg-white focus:outline-none focus:border-warm-500 resize-y"
+              placeholder="https://..."
+            />
+          </div>
+
+          {error && (
+            <p className="text-xs text-red-500">{error}</p>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-1.5 bg-warm-800 text-white text-sm rounded-lg hover:bg-warm-900 transition-colors font-medium disabled:opacity-60"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setError(null); setConfirmDelete(false); }}
+              className="px-4 py-1.5 border border-warm-300 text-warm-600 text-sm rounded-lg hover:bg-warm-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <div className="flex-1" />
+            {/* Delete */}
+            {!confirmDelete ? (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="px-3 py-1.5 border border-red-200 text-red-500 text-sm rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors"
+              >
+                Delete
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-600 font-medium">Sure?</span>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors disabled:opacity-60"
+                >
+                  {deleting ? "Deleting…" : "Yes, delete"}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="px-2 py-1.5 text-warm-400 text-sm hover:text-warm-700 transition-colors"
+                >
+                  No
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  // ---- NORMAL VIEW ----
   return (
     <article
       className="group border-b border-warm-200 py-5 cursor-pointer transition-colors hover:bg-warm-50/70 px-3 -mx-3"
-      onClick={() => setExpanded(!expanded)}
+      onClick={() => !editMode && setExpanded(!expanded)}
     >
       <div className="flex items-start gap-3">
         {/* Main content */}
@@ -237,18 +515,34 @@ export function IncidentCard({ incident }: { incident: Incident }) {
           )}
         </div>
 
-        {/* Expand chevron */}
-        <div className="pt-1 text-warm-300 group-hover:text-warm-400 transition-colors shrink-0">
-          <svg
-            className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        {/* Edit mode buttons OR expand chevron */}
+        {editMode ? (
+          <div className="flex items-center gap-1.5 pt-1 shrink-0">
+            {/* Edit pencil */}
+            <button
+              onClick={(e) => { e.stopPropagation(); startEditing(); }}
+              title="Edit incident"
+              className="p-1.5 rounded-md text-warm-300 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          /* Expand chevron */
+          <div className="pt-1 text-warm-300 group-hover:text-warm-400 transition-colors shrink-0">
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        )}
       </div>
     </article>
   );
