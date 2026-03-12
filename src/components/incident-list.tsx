@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { IncidentCard } from "./incident-card";
 
 type Incident = {
@@ -67,11 +68,24 @@ function Pagination({
   page: number;
   totalPages: number;
 }) {
+  const searchParams = useSearchParams();
+
+  function pageUrl(p: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p === 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(p));
+    }
+    const qs = params.toString();
+    return qs ? `/?${qs}` : "/";
+  }
+
   return (
     <div className="flex items-center justify-center gap-2 mt-8">
       {page > 1 && (
         <a
-          href={`?page=${page - 1}`}
+          href={pageUrl(page - 1)}
           className="px-3 py-1.5 rounded-md border border-warm-300 text-sm hover:bg-warm-100 transition-colors"
         >
           Previous
@@ -82,7 +96,7 @@ function Pagination({
       </span>
       {page < totalPages && (
         <a
-          href={`?page=${page + 1}`}
+          href={pageUrl(page + 1)}
           className="px-3 py-1.5 rounded-md border border-warm-300 text-sm hover:bg-warm-100 transition-colors"
         >
           Next
