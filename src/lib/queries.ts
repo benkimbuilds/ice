@@ -38,9 +38,9 @@ export async function getIncidents(filters: IncidentFilters = {}) {
   if (search) {
     AND.push({
       OR: [
-        { headline: { contains: search } },
-        { summary: { contains: search } },
-        { location: { contains: search } },
+        { headline: { contains: search, mode: "insensitive" } },
+        { summary: { contains: search, mode: "insensitive" } },
+        { location: { contains: search, mode: "insensitive" } },
       ],
     });
   }
