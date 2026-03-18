@@ -167,13 +167,26 @@ function EditableRow({
 
       {/* Sources: primary url + alt sources comma-separated */}
       <td className="py-1">
-        <Cell
-          value={fields.sources}
-          onChange={(v) => update("sources", v)}
-          onBlur={save}
-          placeholder="https://..."
-          mono
-        />
+        <div className="flex items-center gap-1">
+          <Cell
+            value={fields.sources}
+            onChange={(v) => update("sources", v)}
+            onBlur={save}
+            placeholder="https://..."
+            mono
+          />
+          {fields.sources && (
+            <a
+              href={fields.sources.split(",")[0].trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 text-warm-400 hover:text-blue-600"
+              title="Open source"
+            >
+              ↗
+            </a>
+          )}
+        </div>
       </td>
 
       {/* Headline */}
