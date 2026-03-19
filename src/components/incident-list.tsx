@@ -15,6 +15,7 @@ type Incident = {
   summary: string | null;
   incidentType: string | null;
   country: string | null;
+  imageUrl: string | null;
 };
 
 type TranslationMap = Record<number, { headline: string | null }>;
