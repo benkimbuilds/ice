@@ -9,7 +9,6 @@ export const INCIDENT_TYPE_TAGS = [
   { value: "Injury/Illness/Medical", label: "Injury/Illness/Medical" },
   { value: "Officer Misconduct", label: "Officer Misconduct" },
   { value: "Officer Use Of Force", label: "Officer Use of Force" },
-  { value: "Protest / Intervention", label: "Protest/Intervention" },
   { value: "Raid", label: "Raid" },
   { value: "State/Local Collusion", label: "State/Local Collusion" },
   { value: "Vigilante", label: "Vigilante/Bounty Hunter Action" },
@@ -26,6 +25,8 @@ export const PERSON_IMPACTED_TAGS = [
   { value: "Student", label: "Student" },
   { value: "TPS", label: "Temporary Protected Status" },
   { value: "U.S. Citizen", label: "U.S. Citizen" },
+  { value: "Protester/Intervenor", label: "Protester/Intervenor" },
+  { value: "Palestine Advocate", label: "Palestine Advocate" },
   { value: "Visa / Legal Status", label: "Visa/Legal Status" },
 ] as const;
 

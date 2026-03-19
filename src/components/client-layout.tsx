@@ -11,7 +11,7 @@ function LanguageToggle() {
     return (
       <button
         onClick={() => setLang("es")}
-        className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
+        className="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
       >
         🌐 Ver en Español
       </button>
@@ -21,7 +21,7 @@ function LanguageToggle() {
   return (
     <button
       onClick={() => setLang("en")}
-      className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
+      className="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
     >
       🌐 View in English
     </button>
@@ -63,7 +63,8 @@ function Inner({ children }: { children: ReactNode }) {
     <>
       {/* HUMSI branding strip */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-end">
+        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+          <LanguageToggle />
           <a
             href="https://humsi.org"
             target="_blank"
@@ -83,7 +84,6 @@ function Inner({ children }: { children: ReactNode }) {
               priority
             />
           </a>
-          <LanguageToggle />
         </div>
       </div>
       <SiteHeader />
