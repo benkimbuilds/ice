@@ -6,22 +6,25 @@ import { LanguageProvider, useLanguage, type Lang } from "@/lib/i18n";
 
 function LanguageToggle() {
   const { lang, setLang } = useLanguage();
+
+  if (lang === "en") {
+    return (
+      <button
+        onClick={() => setLang("es")}
+        className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
+      >
+        🌐 Ver en Español
+      </button>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-0.5 ml-4">
-      {(["en", "es"] as Lang[]).map((l) => (
-        <button
-          key={l}
-          onClick={() => setLang(l)}
-          className={`px-2 py-0.5 text-xs font-medium rounded transition-colors ${
-            lang === l
-              ? "bg-warm-800 text-white"
-              : "text-warm-400 hover:text-warm-700"
-          }`}
-        >
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
+    <button
+      onClick={() => setLang("en")}
+      className="ml-4 px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
+    >
+      🌐 View in English
+    </button>
   );
 }
 
