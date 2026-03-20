@@ -454,7 +454,7 @@ export function IncidentCard({
   return (
     <article
       className="group border-b border-warm-200 py-5 cursor-pointer transition-colors hover:bg-warm-50/70 px-3 -mx-3"
-      onClick={() => !editMode && handleExpand()}
+      onClick={() => handleExpand()}
     >
       <div className="flex items-start gap-3">
         {/* Main content */}
