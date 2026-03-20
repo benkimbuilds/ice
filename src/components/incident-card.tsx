@@ -31,9 +31,22 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 function formatDate(dateStr: string | null): string | null {
   if (!dateStr || dateStr === "null") return null;
   // ISO format: YYYY-MM-DD
-  const iso = new Date(dateStr + "T12:00:00Z");
-  if (!isNaN(iso.getTime())) {
-    return `${MONTHS[iso.getUTCMonth()]} ${iso.getUTCDate()}, ${iso.getUTCFullYear()}`;
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
+  }
+  // YYYY-MM (month only, ISO)
+  const isoMonthMatch = dateStr.match(/^(\d{4})-(\d{2})$/);
+  if (isoMonthMatch) {
+    const [, y, m] = isoMonthMatch;
+    return `${MONTHS[parseInt(m, 10) - 1]} ${y}`;
+  }
+  // YYYY/M/D (reversed slash format)
+  const reversedMatch = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (reversedMatch) {
+    const [, y, m, d] = reversedMatch;
+    return `${MONTHS[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
   }
   // M/D/YYYY or M/D
   const parts = dateStr.split("/");
@@ -41,10 +54,18 @@ function formatDate(dateStr: string | null): string | null {
     const m = parseInt(parts[0], 10);
     const d = parseInt(parts[1], 10);
     const y = parts.length >= 3 ? parseInt(parts[2], 10) : null;
+    // M/YYYY (month/year only, no day)
+    if (m >= 1 && m <= 12 && y === null && d >= 1900) {
+      return `${MONTHS[m - 1]} ${d}`;
+    }
     if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
       return y ? `${MONTHS[m - 1]} ${d}, ${y}` : `${MONTHS[m - 1]} ${d}`;
     }
   }
+  // YYYY alone
+  if (/^\d{4}$/.test(dateStr)) return dateStr;
+  // Unknown / unparseable — return null to skip display
+  if (/unknown/i.test(dateStr)) return null;
   return dateStr;
 }
 
@@ -572,32 +593,49 @@ export function IncidentCard({
                 if (events.length === 0) return null;
                 return (
                   <div className="border-l-2 border-warm-200 pl-4 space-y-2.5 ml-1">
-                    {events.map((evt, i) => (
-                      <div key={i} className="relative">
-                        <div className="absolute -left-[1.35rem] top-1.5 w-2 h-2 rounded-full bg-warm-300" />
-                        <div className="text-sm">
-                          <span className="font-medium text-warm-500">
-                            {formatDate(evt.date) ?? evt.date}
-                          </span>
-                          <span className="text-warm-300 mx-1.5">—</span>
-                          <span className="text-warm-700">{evt.event}</span>
-                          {evt.source && (
-                            <>
-                              {" "}
+                    {events.map((evt, i) => {
+                      const displayDate = formatDate(evt.date) ?? evt.date;
+                      return (
+                        <div key={i} className="relative">
+                          <div className="absolute -left-[1.35rem] top-1.5 w-2 h-2 rounded-full bg-warm-300" />
+                          <div className="text-sm">
+                            <span className="font-medium text-warm-500">
+                              {displayDate}
+                            </span>
+                            {evt.source && (
                               <a
                                 href={evt.source}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-orange-500 hover:text-orange-700 hover:underline text-xs font-medium"
+                                className="ml-1 text-orange-500 hover:text-orange-700 hover:underline text-xs font-medium"
                               >
                                 [{getSourceName(evt.source)}]
                               </a>
-                            </>
-                          )}
+                            )}
+                            <span className="text-warm-300 mx-1.5">—</span>
+                            <span className="text-warm-700">{evt.event}</span>
+                          </div>
                         </div>
+                      );
+                    })}
+                    {/* Source links */}
+                    {allSources.length > 0 && (
+                      <div className="flex flex-wrap gap-x-2 gap-y-0.5 pt-1">
+                        {allSources.map((src) => (
+                          <a
+                            key={src}
+                            href={src}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[0.7rem] text-orange-500 hover:text-orange-700 hover:underline font-medium"
+                          >
+                            {getSourceName(src)}
+                          </a>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 );
               })()}
