@@ -36,6 +36,7 @@ Rules:
 - Only use tags from the provided list. Use multiple comma-separated tags when applicable.
 - Use "Resistance" for vigils, protests, rallies, community organizing, sanctuary movements, activist stories, and cases where activists or advocates are targeted by ICE.
 - Use "Native American" ONLY for U.S. Native Americans (members of federally recognized tribes, e.g. Navajo, Oglala Sioux, Cherokee). Use "Indigenous (Non-U.S.)" for indigenous people from other countries (e.g. indigenous Mexicans, Guatemalan Mayans, etc.).
+- Use "Vigilante" ONLY for non-government actors: civilians impersonating ICE agents, bounty hunters, or vigilantes targeting immigrants. Do NOT use for real ICE/CBP agents using deceptive tactics (false pretenses, unmarked vehicles, fake stories) — those are "Officer Misconduct".
 - If you cannot determine a field, set it to null.
 - The summary should be strictly factual and neutral in tone. Describe only what happened — do not editorialize, assess significance, or use conclusory language.
 - Do NOT use phrases like "became a symbol of," "drew national attention," "highlighted the human cost of," "raised questions about," or similar embellishments. Just state the facts.
