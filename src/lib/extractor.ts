@@ -11,7 +11,9 @@ const SYNTHESIS_PROMPT = `You are a data synthesis assistant. Given multiple new
 Rules:
 - The headline and summary must represent ALL sources, not just one.
 - If the situation changed over time (e.g. detained → released, or appealed), reflect that arc.
-- Remain factual and neutral in tone.
+- Remain strictly factual and neutral in tone. Describe only what happened — do not editorialize, assess significance, or use conclusory language.
+- Do NOT use phrases like "became a symbol of," "drew national attention," "highlighted the human cost of," "raised questions about," or similar embellishments. Instead, describe the concrete facts: who protested, what organizations responded, what legal actions were taken.
+- Do NOT characterize events as "landmark," "unprecedented," "controversial," or "sparking debate." Just state what occurred.
 - Return ONLY the JSON object, no other text.`;
 
 const EXTRACTION_PROMPT = `You are a data extraction assistant. Given the text content of a news article or social media post about a U.S. immigration enforcement incident, plus any metadata extracted from the page, extract the following fields. Return ONLY valid JSON with no markdown formatting.
@@ -29,7 +31,8 @@ Rules:
 - The page metadata (og:title, og:description, etc.) is provided by the publisher and is generally reliable for headline and summary. Use it as a strong starting point.
 - Only use tags from the provided list. Use multiple comma-separated tags when applicable.
 - If you cannot determine a field, set it to null.
-- The summary should be factual and neutral in tone.
+- The summary should be strictly factual and neutral in tone. Describe only what happened — do not editorialize, assess significance, or use conclusory language.
+- Do NOT use phrases like "became a symbol of," "drew national attention," "highlighted the human cost of," "raised questions about," or similar embellishments. Just state the facts.
 - For the date, prefer the date the incident occurred over the article publication date. Use the publication date only as a fallback.
 - Return ONLY the JSON object, no other text.`;
 
