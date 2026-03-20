@@ -14,7 +14,7 @@ const SYNTHESIS_PROMPT = `You are a data synthesis assistant. Given multiple new
 Rules:
 - The headline and summary must represent ALL sources, not just one.
 - If the situation changed over time (e.g. detained → released, or appealed), reflect that arc.
-- The timeline should list key events in chronological order with dates in M/D/YYYY format. Each event should be a short factual statement (e.g. "Detained by ICE agents at courthouse", "Federal judge ordered release on bond", "Released from custody"). Include 2-8 events covering the major developments.
+- The timeline should list key events in chronological order with dates in M/D/YYYY format. Each date should appear ONLY ONCE — if multiple things happened on the same day, synthesize them into a single concise sentence. Each event should be a short factual statement (e.g. "Detained by ICE agents at courthouse", "Federal judge ordered release on bond", "Released from custody"). Include 2-8 events covering the major developments.
 - Remain strictly factual and neutral in tone. Describe only what happened — do not editorialize, assess significance, or use conclusory language.
 - Do NOT use phrases like "became a symbol of," "drew national attention," "highlighted the human cost of," "raised questions about," or similar embellishments. Instead, describe the concrete facts: who protested, what organizations responded, what legal actions were taken.
 - Do NOT characterize events as "landmark," "unprecedented," "controversial," or "sparking debate." Just state what occurred.
