@@ -746,16 +746,18 @@ export function IncidentCard({
           </div>
         </div>
       </div>
-      {/* Pending approval actions */}
-      {isPending && (
+      {/* Edit mode actions */}
+      {editMode && (
         <div className="mt-2 flex items-center gap-2 ml-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); handleApprove(); }}
-            disabled={approving}
-            className="px-3 py-1 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-60"
-          >
-            {approving ? "Approving…" : "✓ Approve"}
-          </button>
+          {isPending && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleApprove(); }}
+              disabled={approving}
+              className="px-3 py-1 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-60"
+            >
+              {approving ? "Approving…" : "✓ Approve"}
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); handleFindCandidates(); }}
             disabled={combining}
@@ -763,29 +765,33 @@ export function IncidentCard({
           >
             {combining ? "Searching…" : "⊕ Add to existing"}
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
-            className="px-3 py-1 text-xs font-medium rounded-md border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"
-          >
-            ✕ Delete
-          </button>
-          {confirmDelete && (
-            <div className="flex items-center gap-1.5 ml-1">
-              <span className="text-xs text-red-600 font-medium">Sure?</span>
+          {isPending && (
+            <>
               <button
-                onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-                disabled={deleting}
-                className="px-2 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 disabled:opacity-60"
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+                className="px-3 py-1 text-xs font-medium rounded-md border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"
               >
-                {deleting ? "…" : "Yes"}
+                ✕ Delete
               </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
-                className="px-2 py-1 text-warm-400 text-xs hover:text-warm-700"
-              >
-                No
-              </button>
-            </div>
+              {confirmDelete && (
+                <div className="flex items-center gap-1.5 ml-1">
+                  <span className="text-xs text-red-600 font-medium">Sure?</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+                    disabled={deleting}
+                    className="px-2 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 disabled:opacity-60"
+                  >
+                    {deleting ? "…" : "Yes"}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+                    className="px-2 py-1 text-warm-400 text-xs hover:text-warm-700"
+                  >
+                    No
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
