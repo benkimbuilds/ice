@@ -10,6 +10,7 @@ type TimelineEvent = {
   date: string;
   event: string;
   source?: string;
+  sources?: string[];
 };
 
 type Incident = {
@@ -648,49 +649,70 @@ export function IncidentCard({
                   } catch {}
                 }
                 if (events.length === 0) return null;
+
+                // Collect sources attributed to timeline events
+                const attributedSources = new Set<string>();
+                events.forEach((evt) => {
+                  if (evt.sources) evt.sources.forEach((s) => attributedSources.add(s));
+                  if (evt.source) attributedSources.add(evt.source);
+                });
+                // Sources not attributed to any event
+                const unattributed = allSources.filter((s) => !attributedSources.has(s));
+
                 return (
-                  <div className="border-l-2 border-warm-200 pl-4 space-y-2.5 ml-1">
+                  <div className="border-l-2 border-warm-200 pl-4 space-y-3 ml-1">
                     {events.map((evt, i) => {
                       const displayDate = formatDate(evt.date) ?? evt.date;
+                      const evtSources = evt.sources ?? (evt.source ? [evt.source] : []);
                       return (
                         <div key={i} className="relative">
-                          <div className="absolute -left-[1.35rem] top-1.5 w-2 h-2 rounded-full bg-warm-300" />
-                          <div className="text-sm">
-                            <span className="font-medium text-warm-500">
-                              {displayDate}
-                            </span>
-                            {evt.source && (
-                              <a
-                                href={evt.source}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="ml-1 text-orange-500 hover:text-orange-700 hover:underline text-xs font-medium"
-                              >
-                                [{getSourceName(evt.source)}]
-                              </a>
+                          <div className="absolute -left-[1.35rem] top-1.5 w-2 h-2 rounded-full bg-warm-400" />
+                          <div>
+                            <div className="text-sm">
+                              <span className="font-semibold text-warm-600">
+                                {displayDate}
+                              </span>
+                              <span className="text-warm-300 mx-1.5">—</span>
+                              <span className="text-warm-700">{evt.event}</span>
+                            </div>
+                            {evtSources.length > 0 && (
+                              <div className="flex flex-wrap gap-x-1.5 gap-y-0.5 mt-0.5">
+                                {evtSources.map((src) => (
+                                  <a
+                                    key={src}
+                                    href={src}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-[0.65rem] text-orange-500/80 hover:text-orange-700 hover:underline font-medium"
+                                  >
+                                    {getSourceName(src)}
+                                  </a>
+                                ))}
+                              </div>
                             )}
-                            <span className="text-warm-300 mx-1.5">—</span>
-                            <span className="text-warm-700">{evt.event}</span>
                           </div>
                         </div>
                       );
                     })}
-                    {/* Source links */}
-                    {allSources.length > 0 && (
-                      <div className="flex flex-wrap gap-x-2 gap-y-0.5 pt-1">
-                        {allSources.map((src) => (
-                          <a
-                            key={src}
-                            href={src}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[0.7rem] text-orange-500 hover:text-orange-700 hover:underline font-medium"
-                          >
-                            {getSourceName(src)}
-                          </a>
-                        ))}
+                    {/* Unattributed sources */}
+                    {unattributed.length > 0 && (
+                      <div className="pt-0.5">
+                        <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
+                          <span className="text-[0.65rem] text-warm-400 font-medium">Also covered by:</span>
+                          {unattributed.map((src) => (
+                            <a
+                              key={src}
+                              href={src}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[0.65rem] text-orange-500/80 hover:text-orange-700 hover:underline font-medium"
+                            >
+                              {getSourceName(src)}
+                            </a>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
