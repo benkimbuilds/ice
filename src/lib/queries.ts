@@ -133,6 +133,7 @@ export async function getIncidents(filters: IncidentFilters = {}) {
         country: true,
         imageUrl: true,
         timeline: true,
+        approved: true,
       },
     }),
     prisma.incident.count({ where }),
@@ -164,6 +165,31 @@ export async function getMapIncidents(filters: IncidentFilters = {}) {
       latitude: true,
       longitude: true,
       incidentType: true,
+    },
+  });
+}
+
+export async function getPendingIncidents() {
+  return prisma.incident.findMany({
+    where: {
+      status: "COMPLETE",
+      approved: false,
+      headline: { not: null },
+    },
+    orderBy: [{ parsedDate: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      url: true,
+      altSources: true,
+      date: true,
+      location: true,
+      headline: true,
+      summary: true,
+      incidentType: true,
+      country: true,
+      imageUrl: true,
+      timeline: true,
+      approved: true,
     },
   });
 }

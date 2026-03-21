@@ -17,6 +17,7 @@ type Incident = {
   country: string | null;
   imageUrl: string | null;
   timeline: string | null;
+  approved?: boolean;
 };
 
 type TranslationMap = Record<number, { headline: string | null }>;
@@ -93,6 +94,7 @@ export function IncidentList({
   page,
   totalPages,
   editMode = false,
+  pendingIncidents = [],
 }: {
   incidents: Incident[];
   total: number;
@@ -100,6 +102,7 @@ export function IncidentList({
   page: number;
   totalPages: number;
   editMode?: boolean;
+  pendingIncidents?: Incident[];
 }) {
   const { t, lang } = useLanguage();
   const { map: translations, loading: translating } = useTranslations(incidents, lang);
@@ -117,6 +120,29 @@ export function IncidentList({
           {t.incidents}
         </p>
       </div>
+
+      {/* Pending incidents - only shown in edit mode */}
+      {editMode && pendingIncidents.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-300">
+              ⏳ {pendingIncidents.length} pending review
+            </span>
+            <span className="text-xs text-warm-400">
+              These stories are not yet visible to the public.
+            </span>
+          </div>
+          <div className="border border-amber-200 rounded-lg overflow-hidden bg-amber-50/20">
+            {pendingIncidents.map((incident) => (
+              <IncidentCard
+                key={incident.id}
+                incident={incident}
+                editMode={editMode}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {incidents.length === 0 ? (
         <div className="py-12 text-center text-warm-400">

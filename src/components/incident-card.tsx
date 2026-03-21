@@ -24,6 +24,16 @@ type Incident = {
   country: string | null;
   imageUrl: string | null;
   timeline: string | null;
+  approved?: boolean;
+};
+
+type CombineCandidate = {
+  id: number;
+  headline: string;
+  date: string | null;
+  location: string | null;
+  score: number;
+  approved: boolean;
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -166,6 +176,53 @@ export function IncidentCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [combining, setCombining] = useState(false);
+  const [candidates, setCandidates] = useState<CombineCandidate[]>([]);
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [combiningInto, setCombiningInto] = useState<number | null>(null);
+
+  const isPending = editMode && incident.approved === false;
+
+  async function handleApprove() {
+    setApproving(true);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/approve`, {
+        method: "POST",
+        headers: { "x-edit-password": "acab" },
+      });
+      if (res.ok) router.refresh();
+    } catch {}
+    setApproving(false);
+  }
+
+  async function handleFindCandidates() {
+    setCombining(true);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/combine`, {
+        headers: { "x-edit-password": "acab" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCandidates(data.candidates ?? []);
+        setShowCandidates(true);
+      }
+    } catch {}
+    setCombining(false);
+  }
+
+  async function handleCombineInto(existingId: number) {
+    setCombiningInto(existingId);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/combine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-edit-password": "acab" },
+        body: JSON.stringify({ existingId }),
+      });
+      if (res.ok) router.refresh();
+    } catch {}
+    setCombiningInto(null);
+  }
 
   // Edit form state — initialized from incident
   const altSourcesList = parseAltSources(incident.altSources);
@@ -474,7 +531,7 @@ export function IncidentCard({
   // ---- NORMAL VIEW ----
   return (
     <article
-      className="group border-b border-warm-200 py-5 cursor-pointer transition-colors hover:bg-warm-50/70 px-3 -mx-3"
+      className={`group border-b border-warm-200 py-5 cursor-pointer transition-colors hover:bg-warm-50/70 px-3 -mx-3 ${isPending ? "border-l-4 border-l-amber-400 bg-amber-50/30" : ""}`}
       onClick={() => handleExpand()}
     >
       <div className="flex items-start gap-3">
@@ -663,10 +720,9 @@ export function IncidentCard({
           )}
         </div>
 
-        {/* Edit mode buttons OR expand chevron */}
-        {editMode ? (
-          <div className="flex items-center gap-1.5 pt-1 shrink-0">
-            {/* Edit pencil */}
+        {/* Right side: expand chevron + edit tools */}
+        <div className="flex items-center gap-1.5 pt-1 shrink-0">
+          {editMode && (
             <button
               onClick={(e) => { e.stopPropagation(); startEditing(); }}
               title="Edit incident"
@@ -676,10 +732,8 @@ export function IncidentCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
               </svg>
             </button>
-          </div>
-        ) : (
-          /* Expand chevron */
-          <div className="pt-1 text-warm-300 group-hover:text-warm-400 transition-colors shrink-0">
+          )}
+          <div className="text-warm-300 group-hover:text-warm-400 transition-colors">
             <svg
               className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
               fill="none"
@@ -690,8 +744,87 @@ export function IncidentCard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-        )}
+        </div>
       </div>
+      {/* Pending approval actions */}
+      {isPending && (
+        <div className="mt-2 flex items-center gap-2 ml-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); handleApprove(); }}
+            disabled={approving}
+            className="px-3 py-1 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-60"
+          >
+            {approving ? "Approving…" : "✓ Approve"}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleFindCandidates(); }}
+            disabled={combining}
+            className="px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+          >
+            {combining ? "Searching…" : "⊕ Add to existing"}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+            className="px-3 py-1 text-xs font-medium rounded-md border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"
+          >
+            ✕ Delete
+          </button>
+          {confirmDelete && (
+            <div className="flex items-center gap-1.5 ml-1">
+              <span className="text-xs text-red-600 font-medium">Sure?</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+                disabled={deleting}
+                className="px-2 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 disabled:opacity-60"
+              >
+                {deleting ? "…" : "Yes"}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+                className="px-2 py-1 text-warm-400 text-xs hover:text-warm-700"
+              >
+                No
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Combine candidates panel */}
+      {showCandidates && (
+        <div className="mt-2 border border-blue-200 rounded-lg bg-blue-50/50 p-3" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-blue-800">
+              {candidates.length > 0 ? `${candidates.length} matching incident${candidates.length === 1 ? "" : "s"} found` : "No matching incidents found"}
+            </span>
+            <button
+              onClick={() => setShowCandidates(false)}
+              className="text-xs text-blue-400 hover:text-blue-700"
+            >
+              ✕ Close
+            </button>
+          </div>
+          {candidates.map((c) => (
+            <div key={c.id} className="flex items-center gap-2 py-1.5 border-t border-blue-100">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-warm-800 truncate">{c.headline}</p>
+                <p className="text-xs text-warm-400">
+                  {c.date ?? "No date"} · {c.location ?? "No location"}
+                  {c.approved ? "" : " · (pending)"}
+                  <span className="text-blue-500 ml-1">score: {c.score}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => handleCombineInto(c.id)}
+                disabled={combiningInto === c.id}
+                className="px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60 shrink-0"
+              >
+                {combiningInto === c.id ? "Merging…" : "Merge into this"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </article>
   );
 }

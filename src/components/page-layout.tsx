@@ -30,6 +30,7 @@ type Incident = {
   country: string | null;
   imageUrl: string | null;
   timeline: string | null;
+  approved?: boolean;
 };
 
 export function PageLayout({
@@ -40,6 +41,7 @@ export function PageLayout({
   totalAll,
   page,
   totalPages,
+  pendingIncidents = [],
 }: {
   mapIncidents: MapIncident[];
   countries: string[];
@@ -48,6 +50,7 @@ export function PageLayout({
   totalAll: number;
   page: number;
   totalPages: number;
+  pendingIncidents?: Incident[];
 }) {
   const [showMap, setShowMap] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -145,6 +148,7 @@ export function PageLayout({
         page={page}
         totalPages={totalPages}
         editMode={editMode}
+        pendingIncidents={editMode ? pendingIncidents : []}
       />
 
       {/* Password modal */}
