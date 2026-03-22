@@ -849,7 +849,7 @@ export function IncidentCard({
                 <p className="text-xs text-warm-400">
                   {c.date ?? "No date"} · {c.location ?? "No location"}
                   {c.approved ? "" : " · (pending)"}
-                  <span className="text-blue-500 ml-1">score: {c.score}</span>
+                  <span className="text-blue-500 ml-1">score: {Math.round(c.score * 100)}%</span>
                 </p>
               </div>
               <button

@@ -27,16 +27,20 @@ const EXTRACTION_PROMPT = `You are a data extraction assistant. Given the text c
   "date": "The date of the incident in M/D/YYYY format if available, otherwise null",
   "location": "City, State abbreviation (e.g. 'Chicago, IL') if available, otherwise null",
   "summary": "A 2-4 sentence factual summary of what happened",
-  "incidentType": "Comma-separated tags from ONLY these options: Detained, Deported, Death, Detention Conditions, Officer Use Of Force, Officer Misconduct, Minor/Family, U.S. Citizen, Protest / Intervention, Raid, Resistance, Refugee/Asylum, DACA, Visa / Legal Status, LPR, TPS, Court Process Issue, 3rd Country Deportation, Native American, Indigenous (Non-U.S.), Vigilante",
+  "incidentType": "Comma-separated tags from ONLY these options: Detained, Deported, Death, Detention Conditions, Officer Use Of Force, Officer Misconduct, Minor/Family, U.S. Citizen, Protest / Intervention, Raid, Resistance, Refugee/Asylum, DACA, Visa / Legal Status, LPR, TPS, Court Process Issue, 3rd Country Deportation, Native American, Indigenous (Non-U.S.), Vigilante, Disappearance/Detention",
   "country": "Country of origin of the affected person if mentioned, otherwise null"
 }
 
 Rules:
 - The page metadata (og:title, og:description, etc.) is provided by the publisher and is generally reliable for headline and summary. Use it as a strong starting point.
 - Only use tags from the provided list. Use multiple comma-separated tags when applicable.
-- Use "Resistance" for vigils, protests, rallies, community organizing, sanctuary movements, activist stories, and cases where activists or advocates are targeted by ICE.
-- Use "Native American" ONLY for U.S. Native Americans (members of federally recognized tribes, e.g. Navajo, Oglala Sioux, Cherokee). Use "Indigenous (Non-U.S.)" for indigenous people from other countries (e.g. indigenous Mexicans, Guatemalan Mayans, etc.).
-- Use "Vigilante" ONLY for non-government actors: civilians impersonating ICE agents, bounty hunters, or vigilantes targeting immigrants. Do NOT use for real ICE/CBP agents using deceptive tactics (false pretenses, unmarked vehicles, fake stories) — those are "Officer Misconduct".
+- TAG DEFINITIONS — apply tags precisely:
+  - "Raid": ONLY for enforcement operations where officers storm/sweep a location and detain multiple people (workplace raids, neighborhood sweeps, multi-person operations). Do NOT use for targeted arrests of a single individual or for stories about planned detention facilities.
+  - "Detained" / "Disappearance/Detention": ONLY when a specific person is actually detained, disappeared, or held in custody in the story. Do NOT use for stories that merely discuss detention policy, planned facilities, or protests about detention — unless someone is actually detained in the story.
+  - "Resistance": for vigils, protests, rallies, community organizing, sanctuary movements, activist stories, community opposition to ICE facilities/operations, and cases where activists or advocates are targeted by ICE.
+  - "Native American": ONLY for U.S. Native Americans (members of federally recognized tribes, e.g. Navajo, Oglala Sioux, Cherokee).
+  - "Indigenous (Non-U.S.)": for indigenous people from other countries (e.g. indigenous Mexicans, Guatemalan Mayans, etc.).
+  - "Vigilante": ONLY for non-government actors — civilians impersonating ICE agents, bounty hunters, or vigilantes targeting immigrants. Do NOT use for real ICE/CBP agents using deceptive tactics (false pretenses, unmarked vehicles, fake stories) — those are "Officer Misconduct".
 - If you cannot determine a field, set it to null.
 - The summary should be strictly factual and neutral in tone. Describe only what happened — do not editorialize, assess significance, or use conclusory language.
 - Do NOT use phrases like "became a symbol of," "drew national attention," "highlighted the human cost of," "raised questions about," or similar embellishments. Just state the facts.

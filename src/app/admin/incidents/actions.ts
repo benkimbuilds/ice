@@ -405,7 +405,7 @@ function extractAllPersonNames(text: string): string[] {
 }
 
 export async function findCombineCandidates(id: number): Promise<{
-  candidates: Array<{ id: number; headline: string; date: string | null; score: number }>;
+  candidates: Array<{ id: number; headline: string; date: string | null; location: string | null; score: number }>;
 }> {
   await requireAdmin();
 
@@ -442,7 +442,7 @@ export async function findCombineCandidates(id: number): Promise<{
   const words1 = getKeywords(incident.headline + " " + (incident.summary ?? ""));
   const loc1 = incident.location?.toLowerCase().trim() ?? "";
 
-  const scored: Array<{ id: number; headline: string; date: string | null; score: number }> = [];
+  const scored: Array<{ id: number; headline: string; date: string | null; location: string | null; score: number }> = [];
 
   for (const e of existing) {
     if (!e.headline) continue;
@@ -503,7 +503,7 @@ export async function findCombineCandidates(id: number): Promise<{
     }
 
     if (score >= 0.3) {
-      scored.push({ id: e.id, headline: e.headline, date: e.date, score });
+      scored.push({ id: e.id, headline: e.headline, date: e.date, location: e.location ?? null, score });
     }
   }
 
