@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { scrapeUrl } from "@/lib/scraper";
-import { extractFromText } from "@/lib/extractor";
-import { synthesizeIncidents } from "@/lib/extractor";
-import { serializeTimeline } from "@/lib/extractor";
+import { extractFromText, synthesizeIncidentsWithMismatchDetection, serializeTimeline } from "@/lib/extractor";
 import { parseAltSources } from "@/lib/sources";
+import { parseIncidentDate } from "@/lib/geocode";
 
 const EDIT_PASSWORD = "acab";
 
@@ -39,6 +38,8 @@ export async function POST(
     date: string | null;
   }> = [];
 
+  const errors: string[] = [];
+
   for (const url of allUrls) {
     try {
       const { metadata, bodyText } = await scrapeUrl(url);
@@ -49,42 +50,87 @@ export async function POST(
         summary: extracted.summary,
         date: extracted.date,
       });
-    } catch {
-      // Skip sources that fail to scrape
+    } catch (e: any) {
+      errors.push(`${url}: ${e.message?.slice(0, 100) ?? "scrape failed"}`);
     }
   }
 
   if (sources.length === 0) {
     return NextResponse.json(
-      { error: "Could not scrape any sources" },
+      { error: `Could not scrape any sources. ${errors.join("; ")}` },
       { status: 500 }
     );
   }
 
-  // If only one source, use its extraction directly
-  if (sources.length === 1) {
-    const s = sources[0];
+  try {
+    // Single source: use its extraction directly
+    if (sources.length === 1) {
+      const s = sources[0];
+      const bestDate = s.date || incident.date;
+      const parsedDate = parseIncidentDate(bestDate);
+
+      await prisma.incident.update({
+        where: { id },
+        data: {
+          headline: s.headline || incident.headline,
+          summary: s.summary || incident.summary,
+          date: bestDate,
+          parsedDate,
+        },
+      });
+      return NextResponse.json({ success: true, sourcesUsed: 1 });
+    }
+
+    // Multiple sources: synthesize
+    const result = await synthesizeIncidentsWithMismatchDetection(sources);
+
+    // Use synthesis result even if mismatch (user explicitly asked to regenerate)
+    let headline: string;
+    let summary: string;
+    let timeline: Array<{ date: string; event: string; source?: string }> = [];
+
+    if (result.mismatch) {
+      // Mismatch but user wants regeneration — use the best single-source extraction
+      const best = sources[0];
+      headline = best.headline || incident.headline || "Untitled";
+      summary = sources.map((s) => s.summary).filter(Boolean).join(" ");
+      // Pick earliest date from sources
+      const dates = sources.map((s) => s.date).filter(Boolean) as string[];
+      const bestDate = dates[0] || incident.date;
+      const parsedDate = parseIncidentDate(bestDate);
+
+      await prisma.incident.update({
+        where: { id },
+        data: { headline, summary, date: bestDate, parsedDate },
+      });
+      return NextResponse.json({ success: true, sourcesUsed: sources.length, warning: "mismatch detected" });
+    }
+
+    headline = result.headline;
+    summary = result.summary;
+    timeline = result.timeline;
+
+    // Pick best date: prefer extracted dates, fall back to existing
+    const extractedDates = sources.map((s) => s.date).filter(Boolean) as string[];
+    const bestDate = extractedDates[0] || incident.date;
+    const parsedDate = parseIncidentDate(bestDate);
+
     await prisma.incident.update({
       where: { id },
       data: {
-        headline: s.headline || incident.headline,
-        summary: s.summary || incident.summary,
+        headline,
+        summary,
+        date: bestDate,
+        parsedDate,
+        timeline: serializeTimeline(timeline),
       },
     });
-    return NextResponse.json({ success: true, sourcesUsed: 1 });
+
+    return NextResponse.json({ success: true, sourcesUsed: sources.length });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: `Regeneration failed: ${e.message?.slice(0, 200) ?? "unknown error"}` },
+      { status: 500 }
+    );
   }
-
-  // Multiple sources: synthesize
-  const result = await synthesizeIncidents(sources);
-
-  await prisma.incident.update({
-    where: { id },
-    data: {
-      headline: result.headline,
-      summary: result.summary,
-      timeline: serializeTimeline(result.timeline),
-    },
-  });
-
-  return NextResponse.json({ success: true, sourcesUsed: sources.length });
 }
