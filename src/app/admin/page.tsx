@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { IncidentTable } from "@/components/admin/incident-table";
 import { BackfillButton } from "@/components/admin/backfill-button";
+import { BackfillDatesButton } from "@/components/admin/backfill-dates-button";
 import { FeedbackPanel } from "@/components/admin/feedback-panel";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export default async function AdminPage() {
 
       <div className="flex gap-3 items-center">
         <BackfillButton />
+        <BackfillDatesButton />
       </div>
 
       {/* Feedback */}
