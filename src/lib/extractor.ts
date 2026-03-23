@@ -1,8 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { PageMetadata } from "./scraper";
 
-const SYNTHESIS_PROMPT = `You are a data synthesis assistant. Given multiple news articles or sources about the same immigration enforcement incident involving the same individual, synthesize a single unified headline, summary, and timeline of key events. Return ONLY valid JSON with no markdown formatting.
+const SYNTHESIS_PROMPT = `You are a data synthesis assistant. Given multiple news articles or sources about immigration enforcement incidents, first verify they are about the SAME specific incident (same person/people, same event), then synthesize. Return ONLY valid JSON with no markdown formatting.
 
+IMPORTANT: If the sources describe DIFFERENT people or DIFFERENT incidents, return:
+{
+  "mismatch": true,
+  "groups": [
+    {"sourceIndices": [0], "headline": "Short headline for first incident"},
+    {"sourceIndices": [1, 2], "headline": "Short headline for second incident"}
+  ]
+}
+
+If all sources ARE about the same incident, return:
 {
   "headline": "A short synthesized headline summarizing the full picture of the incident (max 15 words)",
   "summary": "A 3-5 sentence factual summary synthesizing all sources, mentioning key developments or updates if the situation evolved over time",
@@ -12,6 +22,7 @@ const SYNTHESIS_PROMPT = `You are a data synthesis assistant. Given multiple new
 }
 
 Rules:
+- FIRST check: do all sources describe the same specific person and event? If not, set "mismatch": true and group them.
 - The headline and summary must represent ALL sources, not just one.
 - If the situation changed over time (e.g. detained → released, or appealed), reflect that arc.
 - The timeline should list key events in chronological order with dates in M/D/YYYY format. Each date should appear ONLY ONCE — if multiple things happened on the same day, synthesize them into a single concise sentence. Each event should be a short factual statement (e.g. "Detained by ICE agents at courthouse", "Federal judge ordered release on bond", "Released from custody"). Include 2-8 events covering the major developments.
@@ -146,6 +157,10 @@ export function serializeTimeline(events: TimelineEvent[]): string | null {
   return JSON.stringify(events);
 }
 
+export type SynthesisResult =
+  | { mismatch: false; headline: string; summary: string; timeline: TimelineEvent[] }
+  | { mismatch: true; groups: Array<{ sourceIndices: number[]; headline: string }> };
+
 export async function synthesizeIncidents(
   incidents: Array<{
     url: string;
@@ -154,6 +169,31 @@ export async function synthesizeIncidents(
     date?: string | null;
   }>
 ): Promise<{ headline: string; summary: string; timeline: TimelineEvent[] }> {
+  const result = await synthesizeIncidentsWithMismatchDetection(incidents);
+  if (result.mismatch) {
+    // Fallback: use only the first source group
+    throw new MismatchError("Sources describe different incidents", result.groups);
+  }
+  return { headline: result.headline, summary: result.summary, timeline: result.timeline };
+}
+
+export class MismatchError extends Error {
+  groups: Array<{ sourceIndices: number[]; headline: string }>;
+  constructor(message: string, groups: Array<{ sourceIndices: number[]; headline: string }>) {
+    super(message);
+    this.name = "MismatchError";
+    this.groups = groups;
+  }
+}
+
+export async function synthesizeIncidentsWithMismatchDetection(
+  incidents: Array<{
+    url: string;
+    headline: string | null;
+    summary: string | null;
+    date?: string | null;
+  }>
+): Promise<SynthesisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
@@ -180,7 +220,7 @@ export async function synthesizeIncidents(
     messages: [
       {
         role: "user",
-        content: `Synthesize these sources about the same individual:\n\n${content}`,
+        content: `Verify these sources are about the same incident, then synthesize if they are:\n\n${content}`,
       },
     ],
   });
@@ -197,7 +237,15 @@ export async function synthesizeIncidents(
 
   const parsed = JSON.parse(jsonStr);
 
-  // Parse timeline events and attach source URLs where possible
+  // Check for mismatch
+  if (parsed.mismatch) {
+    return {
+      mismatch: true,
+      groups: parsed.groups ?? [],
+    };
+  }
+
+  // Parse timeline events
   const timeline: TimelineEvent[] = (parsed.timeline ?? [])
     .filter((e: any) => e?.date && e?.event)
     .map((e: any) => ({
@@ -207,6 +255,7 @@ export async function synthesizeIncidents(
     }));
 
   return {
+    mismatch: false,
     headline: parsed.headline || "Untitled incident",
     summary: parsed.summary || "",
     timeline,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { parseAltSources } from "@/lib/sources";
-import { synthesizeIncidents, serializeTimeline } from "@/lib/extractor";
+import { synthesizeIncidentsWithMismatchDetection, serializeTimeline } from "@/lib/extractor";
 import { extractPersonName, nameMatchScore } from "@/lib/name-utils";
 
 const EDIT_PASSWORD = "acab";
@@ -229,15 +229,25 @@ export async function POST(
   const allUrls = [primary.url, ...existingAlt, secondary.url, ...newAlt];
   const uniqueUrls = [...new Set(allUrls)].filter((u) => u !== primary.url);
 
-  // Synthesize
-  const { headline, summary, timeline } = await synthesizeIncidents(
-    [primary, secondary].map((i) => ({
-      url: i.url,
-      headline: i.headline,
-      summary: i.summary,
-      date: i.date,
-    }))
-  );
+  // Synthesize with mismatch detection
+  const sources = [primary, secondary].map((i) => ({
+    url: i.url,
+    headline: i.headline,
+    summary: i.summary,
+    date: i.date,
+  }));
+
+  const result = await synthesizeIncidentsWithMismatchDetection(sources);
+
+  if (result.mismatch) {
+    // Sources are about different incidents — don't merge
+    return NextResponse.json(
+      { error: "Sources describe different incidents and cannot be merged", mismatch: true },
+      { status: 409 }
+    );
+  }
+
+  const { headline, summary, timeline } = result;
 
   // Use original date for sorting, not timeline dates
   const latestParsedDate = primary.parsedDate;

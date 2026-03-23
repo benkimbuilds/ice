@@ -220,8 +220,19 @@ export function IncidentCard({
         headers: { "Content-Type": "application/json", "x-edit-password": "acab" },
         body: JSON.stringify({ existingId }),
       });
-      if (res.ok) router.refresh();
-    } catch {}
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const data = await res.json();
+        if (data.mismatch) {
+          setError("Cannot merge: sources describe different incidents");
+        } else {
+          setError(data.error ?? "Merge failed");
+        }
+      }
+    } catch {
+      setError("Network error during merge");
+    }
     setCombiningInto(null);
   }
 
