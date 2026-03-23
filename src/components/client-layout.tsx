@@ -129,7 +129,7 @@ function SiteHeader() {
   const { t } = useLanguage();
   return (
     <header className="bg-warm-900 text-white">
-      <div className="max-w-6xl mx-auto px-6 py-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
         <a href="/" className="block group">
           <h1 className="text-3xl font-bold tracking-tight font-serif bg-gradient-to-r from-white via-orange-100 to-amber-200 bg-clip-text text-transparent drop-shadow-sm leading-snug">
             {t.siteTitle}
@@ -147,7 +147,7 @@ function SiteFooter() {
   const { t } = useLanguage();
   return (
     <footer className="border-t border-warm-200 mt-16">
-      <div className="max-w-6xl mx-auto px-6 py-6 text-sm text-warm-400">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-sm text-warm-400">
         {t.footerText}
       </div>
     </footer>
@@ -182,10 +182,10 @@ function Inner({ children }: { children: ReactNode }) {
             />
           </a>
           {/* Right: action buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
             <a
               href="/analytics"
-              className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md border border-warm-300 text-warm-600 hover:bg-warm-50 transition-colors whitespace-nowrap"
+              className="px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md border border-warm-300 text-warm-600 hover:bg-warm-50 transition-colors whitespace-nowrap"
             >
               📊 <span className="hidden sm:inline">Analytics</span>
             </a>
@@ -195,15 +195,16 @@ function Inner({ children }: { children: ReactNode }) {
               href="https://secure.givelively.org/donate/human-security-initiative"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
+              className="px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
             >
-              Support Our Work
+              <span className="hidden sm:inline">Support Our Work</span>
+              <span className="sm:hidden">Support</span>
             </a>
           </div>
         </div>
       </div>
       <SiteHeader />
-      <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">{children}</main>
       <SiteFooter />
     </>
   );

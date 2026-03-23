@@ -122,7 +122,7 @@ export function PageLayout({
       </Suspense>
 
       {/* Map toggle + Edit mode button row */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <div>
           {editMode && (
             <div className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export function PageLayout({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {!editMode && (
             <button
               onClick={openPasswordModal}
@@ -181,7 +181,7 @@ export function PageLayout({
 
       {/* Nearby results banner */}
       {nearbyMode && (
-        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between flex-wrap gap-2">
           <div>
             <span className="text-sm font-semibold text-blue-800">
               📍 {nearbyIncidents.length} incident{nearbyIncidents.length === 1 ? "" : "s"} within {nearbyRadius} miles

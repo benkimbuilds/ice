@@ -176,6 +176,7 @@ export function IncidentCard({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
   const [approving, setApproving] = useState(false);
   const [combining, setCombining] = useState(false);
@@ -190,6 +191,7 @@ export function IncidentCard({
   const [inlineSaving, setInlineSaving] = useState(false);
   const [relatedStories, setRelatedStories] = useState<Array<{ id: number; headline: string; date: string | null; location: string | null }> | null>(null);
   const [loadingRelated, setLoadingRelated] = useState(false);
+  const [relatedExpanded, setRelatedExpanded] = useState(false);
 
   const isPending = editMode && incident.approved === false;
 
@@ -275,6 +277,7 @@ export function IncidentCard({
   async function handleSearchSources() {
     setSearchingSources(true);
     setError(null);
+    setSuccessMsg(null);
     try {
       const res = await fetch(`/api/incidents/${incident.id}/search-sources`, {
         method: "POST",
@@ -283,6 +286,7 @@ export function IncidentCard({
       const data = await res.json();
       if (res.ok) {
         if (data.added > 0) {
+          setSuccessMsg(`Found ${data.added} new source${data.added === 1 ? "" : "s"}`);
           router.refresh();
         } else {
           setError("No new sources found");
@@ -909,20 +913,39 @@ export function IncidentCard({
               {/* Related stories */}
               {relatedStories && relatedStories.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-warm-100">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-warm-400 mb-2">Related stories</p>
-                  <div className="space-y-1">
-                    {relatedStories.map((rs) => (
-                      <a
-                        key={rs.id}
-                        href={`/?q=${encodeURIComponent(rs.headline?.split(" ").slice(0, 4).join(" ") ?? "")}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="block text-sm text-warm-600 hover:text-warm-900 hover:underline transition-colors"
-                      >
-                        {rs.headline}
-                        {rs.date && <span className="text-warm-400 text-xs ml-1.5">· {rs.date}</span>}
-                      </a>
-                    ))}
-                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setRelatedExpanded(!relatedExpanded); }}
+                    className="flex items-center gap-2 w-full text-left group/related"
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-warm-400">Related stories</p>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-warm-200 text-warm-500">
+                      {relatedStories.length}
+                    </span>
+                    <svg
+                      className={`w-3 h-3 text-warm-400 transition-transform duration-200 ${relatedExpanded ? "rotate-180" : ""}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {relatedExpanded && (
+                    <div className="space-y-1 mt-2">
+                      {relatedStories.map((rs) => (
+                        <a
+                          key={rs.id}
+                          href={`/?q=${encodeURIComponent(rs.headline?.split(" ").slice(0, 4).join(" ") ?? "")}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="block text-sm text-warm-600 hover:text-warm-900 hover:underline transition-colors"
+                        >
+                          {rs.headline}
+                          {rs.date && <span className="text-warm-400 text-xs ml-1.5">· {rs.date}</span>}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {loadingRelated && (
@@ -932,8 +955,8 @@ export function IncidentCard({
           )}
         </div>
 
-        {/* Thumbnail — right side, stretches full height */}
-        {incident.imageUrl && (
+        {/* Thumbnail — right side, hidden when expanded */}
+        {incident.imageUrl && !expanded && (
           <div className="rounded-md overflow-hidden bg-warm-100 w-[5rem] shrink-0 self-stretch">
             <img
               src={incident.imageUrl}
@@ -962,6 +985,9 @@ export function IncidentCard({
         )}
       </div>
       {/* Edit mode actions */}
+      {editMode && (error || successMsg) && (
+        <p className={`mt-2 ml-0 text-xs ${error ? "text-red-500" : "text-green-600"}`}>{error || successMsg}</p>
+      )}
       {editMode && (
         <div className="mt-2 flex items-center gap-2 ml-0">
           {isPending && (
