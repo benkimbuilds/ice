@@ -36,9 +36,9 @@ function FeedbackButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1.5 text-sm font-medium rounded-md border border-warm-300 text-warm-600 hover:bg-warm-50 transition-colors"
+        className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md border border-warm-300 text-warm-600 hover:bg-warm-50 transition-colors whitespace-nowrap"
       >
-        Leave Feedback
+        Feedback
       </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setOpen(false)}>
@@ -108,9 +108,9 @@ function LanguageToggle() {
     return (
       <button
         onClick={() => setLang("es")}
-        className="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
+        className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm whitespace-nowrap"
       >
-        🌐 Ver en Español
+        <span className="hidden sm:inline">🌐 </span>Español
       </button>
     );
   }
@@ -118,9 +118,9 @@ function LanguageToggle() {
   return (
     <button
       onClick={() => setLang("en")}
-      className="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm"
+      className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-sm whitespace-nowrap"
     >
-      🌐 View in English
+      <span className="hidden sm:inline">🌐 </span>English
     </button>
   );
 }
@@ -158,40 +158,42 @@ function Inner({ children }: { children: ReactNode }) {
   const { t } = useLanguage();
   return (
     <>
-      {/* HUMSI branding strip */}
+      {/* Top bar */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-2">
+          {/* Left: HUMSI logo */}
+          <a
+            href="https://humsi.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 opacity-80 hover:opacity-100 transition-opacity shrink-0"
+            aria-label="Human Security Initiative"
+          >
+            <span className="text-[10px] text-gray-400 tracking-wide uppercase font-medium hidden sm:inline">
+              {t.projectOf}
+            </span>
+            <Image
+              src="/humsi-logo.png"
+              alt="HUMSI — Human Security Initiative"
+              width={90}
+              height={36}
+              className="object-contain"
+              priority
+            />
+          </a>
+          {/* Right: action buttons */}
+          <div className="flex items-center gap-2">
             <LanguageToggle />
             <FeedbackButton />
             <a
               href="https://secure.givelively.org/donate/human-security-initiative"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 text-sm font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-sm"
+              className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
             >
               Support Our Work
             </a>
           </div>
-          <a
-            href="https://humsi.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity"
-            aria-label="Human Security Initiative"
-          >
-            <span className="text-xs text-gray-400 tracking-wide uppercase font-medium">
-              {t.projectOf}
-            </span>
-            <Image
-              src="/humsi-logo.png"
-              alt="HUMSI — Human Security Initiative"
-              width={120}
-              height={48}
-              className="object-contain"
-              priority
-            />
-          </a>
         </div>
       </div>
       <SiteHeader />
