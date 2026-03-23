@@ -128,13 +128,13 @@ function LanguageToggle() {
 function SiteHeader() {
   const { t } = useLanguage();
   return (
-    <header className="bg-warm-900 text-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+    <header className="relative bg-black text-white overflow-hidden">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
         <a href="/" className="block group">
-          <h1 className="text-3xl font-bold tracking-tight font-serif bg-gradient-to-r from-white via-orange-100 to-amber-200 bg-clip-text text-transparent drop-shadow-sm leading-snug">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight font-serif bg-gradient-to-r from-white via-amber-100 to-orange-200 bg-clip-text text-transparent drop-shadow-sm leading-tight">
             {t.siteTitle}
           </h1>
-          <p className="text-warm-400 mt-1 text-sm leading-relaxed max-w-3xl font-light tracking-wide">
+          <p className="text-warm-400 group-hover:text-warm-300 mt-1.5 text-sm sm:text-base leading-relaxed max-w-3xl font-light tracking-wide transition-colors">
             {t.siteDescription}
           </p>
         </a>
