@@ -184,6 +184,7 @@ export function IncidentCard({
   const [showCandidates, setShowCandidates] = useState(false);
   const [combiningInto, setCombiningInto] = useState<number | null>(null);
   const [searchingSources, setSearchingSources] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [keywordSearch, setKeywordSearch] = useState("");
   const [keywordSearching, setKeywordSearching] = useState(false);
   const [inlineEditing, setInlineEditing] = useState<"headline" | "summary" | null>(null);
@@ -298,6 +299,27 @@ export function IncidentCard({
       setError("Network error");
     }
     setSearchingSources(false);
+  }
+
+  async function handleRegenerate() {
+    setRegenerating(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/regenerate`, {
+        method: "POST",
+        headers: { "x-edit-password": "acab" },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        router.refresh();
+        setEditing(false);
+      } else {
+        setError(data.error ?? "Regeneration failed");
+      }
+    } catch {
+      setError("Network error");
+    }
+    setRegenerating(false);
   }
 
   async function handleCombineInto(existingId: number) {
@@ -910,7 +932,7 @@ export function IncidentCard({
                   ))}
                 </div>
               )}
-              {/* Related stories */}
+              {/* Related stories (collapsed by default) */}
               {relatedStories && relatedStories.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-warm-100">
                   <button
@@ -1012,6 +1034,13 @@ export function IncidentCard({
             className="px-3 py-1 text-xs font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-60"
           >
             {searchingSources ? "Searching…" : "🔍 Find sources"}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleRegenerate(); }}
+            disabled={regenerating}
+            className="px-3 py-1 text-xs font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-60"
+          >
+            {regenerating ? "Regenerating…" : "↻ Regenerate summary"}
           </button>
           {!confirmDelete ? (
             <button

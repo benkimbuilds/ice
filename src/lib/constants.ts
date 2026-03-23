@@ -8,6 +8,7 @@ export const INCIDENT_TYPE_TAGS = [
   { value: "Detained", label: "Disappearance/Detention" },
   { value: "Injury/Illness/Medical", label: "Illness/Injury" },
   { value: "Officer Misconduct", label: "Officer Misconduct" },
+  { value: "Policy/Stats", label: "Policy/Stats" },
   { value: "Officer Use Of Force", label: "Officer Use of Force" },
   { value: "Raid", label: "Raid" },
   { value: "Resistance", label: "Resistance" },
