@@ -185,6 +185,9 @@ export function IncidentCard({
   const [searchingSources, setSearchingSources] = useState(false);
   const [keywordSearch, setKeywordSearch] = useState("");
   const [keywordSearching, setKeywordSearching] = useState(false);
+  const [inlineEditing, setInlineEditing] = useState<"headline" | "summary" | null>(null);
+  const [inlineValue, setInlineValue] = useState("");
+  const [inlineSaving, setInlineSaving] = useState(false);
 
   const isPending = editMode && incident.approved === false;
 
@@ -213,6 +216,43 @@ export function IncidentCard({
       }
     } catch {}
     setCombining(false);
+  }
+
+  function startInlineEdit(field: "headline" | "summary") {
+    setInlineValue(field === "headline" ? (incident.headline ?? "") : (incident.summary ?? ""));
+    setInlineEditing(field);
+  }
+
+  async function saveInlineEdit() {
+    if (!inlineEditing || inlineSaving) return;
+    setInlineSaving(true);
+    try {
+      const body: Record<string, string> = {};
+      body[inlineEditing] = inlineValue;
+      const res = await fetch(`/api/incidents/${incident.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "x-edit-password": "acab" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setInlineEditing(null);
+        router.refresh();
+      }
+    } catch {}
+    setInlineSaving(false);
+  }
+
+  async function removeTag(tag: string) {
+    const currentTags = (incident.incidentType ?? "").split(",").map(t => t.trim()).filter(Boolean);
+    const newTags = currentTags.filter(t => t !== tag);
+    try {
+      await fetch(`/api/incidents/${incident.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "x-edit-password": "acab" },
+        body: JSON.stringify({ incidentType: newTags.join(", ") }),
+      });
+      router.refresh();
+    } catch {}
   }
 
   async function handleKeywordSearch() {
@@ -592,9 +632,29 @@ export function IncidentCard({
         {/* Main content */}
         <div className="flex-1 min-w-0">
           {/* Headline */}
-          <h3 className="font-serif text-[1.05rem] font-semibold leading-snug text-warm-900 group-hover:text-warm-700 transition-colors">
-            {translatedHeadline ?? incident.headline ?? "Untitled incident"}
-          </h3>
+          {editMode && inlineEditing === "headline" ? (
+            <div className="flex gap-1.5 items-start" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                value={inlineValue}
+                onChange={(e) => setInlineValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveInlineEdit(); if (e.key === "Escape") setInlineEditing(null); }}
+                autoFocus
+                className="flex-1 font-serif text-[1.05rem] font-semibold leading-snug text-warm-900 border border-blue-300 rounded px-1.5 py-0.5 focus:outline-none focus:border-blue-500"
+              />
+              <button onClick={saveInlineEdit} disabled={inlineSaving} className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                {inlineSaving ? "…" : "Save"}
+              </button>
+              <button onClick={() => setInlineEditing(null)} className="px-2 py-1 text-xs text-warm-400 hover:text-warm-700">✕</button>
+            </div>
+          ) : (
+            <h3
+              className={`font-serif text-[1.05rem] font-semibold leading-snug text-warm-900 group-hover:text-warm-700 transition-colors ${editMode ? "cursor-text hover:bg-blue-50/50 rounded px-0.5 -mx-0.5" : ""}`}
+              onDoubleClick={editMode ? (e) => { e.stopPropagation(); startInlineEdit("headline"); } : undefined}
+            >
+              {translatedHeadline ?? incident.headline ?? "Untitled incident"}
+            </h3>
+          )}
 
           {/* Source, metadata, summary */}
           <div className="mt-0.5">
@@ -657,7 +717,10 @@ export function IncidentCard({
 
               {/* Summary preview (collapsed) */}
               {!expanded && incident.summary && (
-                <p className="text-sm text-warm-500 mt-1 line-clamp-2 leading-relaxed">
+                <p
+                  className={`text-sm text-warm-500 mt-1 line-clamp-2 leading-relaxed ${editMode ? "cursor-text hover:bg-blue-50/50 rounded px-0.5 -mx-0.5" : ""}`}
+                  onDoubleClick={editMode ? (e) => { e.stopPropagation(); setExpanded(true); startInlineEdit("summary"); } : undefined}
+                >
                   {incident.summary}
                 </p>
               )}
@@ -668,13 +731,35 @@ export function IncidentCard({
           {expanded && (
             <div className="mt-3 space-y-3">
               {incident.summary && (
-                <p className="text-sm text-warm-700 leading-relaxed">
-                  {translatingSum ? (
-                    <span className="italic text-warm-400">Traduciendo…</span>
-                  ) : (
-                    translatedSummary ?? incident.summary
-                  )}
-                </p>
+                editMode && inlineEditing === "summary" ? (
+                  <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                    <textarea
+                      value={inlineValue}
+                      onChange={(e) => setInlineValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Escape") setInlineEditing(null); }}
+                      autoFocus
+                      rows={4}
+                      className="w-full text-sm text-warm-700 leading-relaxed border border-blue-300 rounded px-2 py-1.5 focus:outline-none focus:border-blue-500 resize-y"
+                    />
+                    <div className="flex gap-1.5">
+                      <button onClick={saveInlineEdit} disabled={inlineSaving} className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                        {inlineSaving ? "…" : "Save"}
+                      </button>
+                      <button onClick={() => setInlineEditing(null)} className="px-2 py-1 text-xs text-warm-400 hover:text-warm-700">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <p
+                    className={`text-sm text-warm-700 leading-relaxed ${editMode ? "cursor-text hover:bg-blue-50/50 rounded px-0.5 -mx-0.5" : ""}`}
+                    onDoubleClick={editMode ? (e) => { e.stopPropagation(); startInlineEdit("summary"); } : undefined}
+                  >
+                    {translatingSum ? (
+                      <span className="italic text-warm-400">Traduciendo…</span>
+                    ) : (
+                      translatedSummary ?? incident.summary
+                    )}
+                  </p>
+                )
               )}
               {/* Timeline */}
               {(() => {
@@ -774,17 +859,29 @@ export function IncidentCard({
                   {incidentTypeTags.map((tag) => (
                     <span
                       key={`it:${tag}`}
-                      className="px-2 py-0.5 text-[0.7rem] font-medium rounded-full bg-blue-50 text-blue-600 border border-blue-200"
+                      className="px-2 py-0.5 text-[0.7rem] font-medium rounded-full bg-blue-50 text-blue-600 border border-blue-200 inline-flex items-center gap-1"
                     >
                       {t.tags.incidentTypes[tag] ?? getTagLabel(tag)}
+                      {editMode && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
+                          className="text-blue-400 hover:text-red-500 ml-0.5 leading-none"
+                        >✕</button>
+                      )}
                     </span>
                   ))}
                   {personImpactedTags.map((tag) => (
                     <span
                       key={`pi:${tag}`}
-                      className="px-2 py-0.5 text-[0.7rem] font-medium rounded-full bg-purple-50 text-purple-600 border border-purple-200"
+                      className="px-2 py-0.5 text-[0.7rem] font-medium rounded-full bg-purple-50 text-purple-600 border border-purple-200 inline-flex items-center gap-1"
                     >
                       {t.tags.personImpacted[tag] ?? getTagLabel(tag)}
+                      {editMode && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeTag(tag); }}
+                          className="text-purple-400 hover:text-red-500 ml-0.5 leading-none"
+                        >✕</button>
+                      )}
                     </span>
                   ))}
                 </div>
@@ -859,33 +956,30 @@ export function IncidentCard({
           >
             {searchingSources ? "Searching…" : "🔍 Find sources"}
           </button>
-          {isPending && (
-            <>
+          {!confirmDelete ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+              className="px-3 py-1 text-xs font-medium rounded-md border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"
+            >
+              ✕ Delete
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 ml-1">
+              <span className="text-xs text-red-600 font-medium">Sure?</span>
               <button
-                onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
-                className="px-3 py-1 text-xs font-medium rounded-md border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"
+                onClick={(e) => { e.stopPropagation(); handleDelete(); }}
+                disabled={deleting}
+                className="px-2 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 disabled:opacity-60"
               >
-                ✕ Delete
+                {deleting ? "…" : "Yes"}
               </button>
-              {confirmDelete && (
-                <div className="flex items-center gap-1.5 ml-1">
-                  <span className="text-xs text-red-600 font-medium">Sure?</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(); }}
-                    disabled={deleting}
-                    className="px-2 py-1 bg-red-500 text-white text-xs rounded-md hover:bg-red-600 disabled:opacity-60"
-                  >
-                    {deleting ? "…" : "Yes"}
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
-                    className="px-2 py-1 text-warm-400 text-xs hover:text-warm-700"
-                  >
-                    No
-                  </button>
-                </div>
-              )}
-            </>
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+                className="px-2 py-1 text-warm-400 text-xs hover:text-warm-700"
+              >
+                No
+              </button>
+            </div>
           )}
         </div>
       )}
