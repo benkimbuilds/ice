@@ -54,6 +54,43 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // If keyword param provided, do a simple keyword search instead of name matching
+  const keyword = req.nextUrl.searchParams.get("keyword");
+  if (keyword && keyword.trim()) {
+    const kw = keyword.trim().toLowerCase();
+    const keywordResults = await prisma.incident.findMany({
+      where: {
+        id: { not: id },
+        status: "COMPLETE",
+        headline: { not: null },
+        OR: [
+          { headline: { contains: keyword.trim(), mode: "insensitive" } },
+          { summary: { contains: keyword.trim(), mode: "insensitive" } },
+        ],
+      },
+      orderBy: { parsedDate: "desc" },
+      take: 15,
+      select: {
+        id: true,
+        headline: true,
+        date: true,
+        location: true,
+        approved: true,
+      },
+    });
+
+    const candidates = keywordResults.map((e) => ({
+      id: e.id,
+      headline: e.headline ?? "",
+      date: e.date,
+      location: e.location,
+      score: 0.5,
+      approved: e.approved,
+    }));
+
+    return NextResponse.json({ candidates });
+  }
+
   // Extract names from BOTH headline and summary
   const headlineName = extractPersonName(incident.headline ?? "");
   const summaryNames = extractAllPersonNames(incident.summary ?? "");

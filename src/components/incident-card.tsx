@@ -183,6 +183,8 @@ export function IncidentCard({
   const [showCandidates, setShowCandidates] = useState(false);
   const [combiningInto, setCombiningInto] = useState<number | null>(null);
   const [searchingSources, setSearchingSources] = useState(false);
+  const [keywordSearch, setKeywordSearch] = useState("");
+  const [keywordSearching, setKeywordSearching] = useState(false);
 
   const isPending = editMode && incident.approved === false;
 
@@ -211,6 +213,21 @@ export function IncidentCard({
       }
     } catch {}
     setCombining(false);
+  }
+
+  async function handleKeywordSearch() {
+    if (!keywordSearch.trim()) return;
+    setKeywordSearching(true);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/combine?keyword=${encodeURIComponent(keywordSearch.trim())}`, {
+        headers: { "x-edit-password": "acab" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCandidates(data.candidates ?? []);
+      }
+    } catch {}
+    setKeywordSearching(false);
   }
 
   async function handleSearchSources() {
@@ -885,6 +902,24 @@ export function IncidentCard({
               className="text-xs text-blue-400 hover:text-blue-700"
             >
               ✕ Close
+            </button>
+          </div>
+          {/* Keyword search */}
+          <div className="flex gap-1.5 mb-2">
+            <input
+              type="text"
+              value={keywordSearch}
+              onChange={(e) => setKeywordSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleKeywordSearch(); }}
+              placeholder="Search by keyword..."
+              className="flex-1 px-2 py-1 text-xs rounded border border-blue-200 bg-white focus:outline-none focus:border-blue-400"
+            />
+            <button
+              onClick={handleKeywordSearch}
+              disabled={keywordSearching || !keywordSearch.trim()}
+              className="px-2 py-1 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {keywordSearching ? "…" : "Search"}
             </button>
           </div>
           {candidates.map((c) => (
