@@ -23,6 +23,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import Exa from "exa-js";
 import { prisma } from "./db";
 import { extractFromText } from "./extractor";
+import { archiveUrls } from "./archive";
 import { parseIncidentDate, geocodeLocation } from "./geocode";
 import { serializeAltSources } from "./sources";
 
@@ -437,6 +438,11 @@ export async function processInstagramPipeline(incidentId: number): Promise<void
         `"${extracted.headline}" | ` +
         `${articles.length} news articles found, ${newNewsUrls.length} saved as alt sources.`
     );
+
+    // Fire-and-forget: archive news article URLs in the Wayback Machine
+    if (altSourceUrls.length > 0) {
+      archiveUrls(altSourceUrls).catch(() => {});
+    }
   } catch (error: any) {
     await prisma.incident.update({
       where: { id: incidentId },
