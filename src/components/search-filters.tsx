@@ -317,7 +317,7 @@ export function SearchFilters({ countries }: { countries: string[] }) {
         <select
           value={currentCountry}
           onChange={(e) => updateFilters({ country: e.target.value || null })}
-          className="px-3 py-2 rounded-lg border border-warm-300 bg-white text-warm-700 text-sm focus:outline-none focus:border-warm-500 min-w-48"
+          className="px-3 py-2 rounded-lg border border-warm-300 bg-white text-warm-700 text-sm focus:outline-none focus:border-warm-500 w-full sm:min-w-48 sm:w-auto"
         >
           <option value="">{t.allCountries}</option>
           {countries.map((c) => (

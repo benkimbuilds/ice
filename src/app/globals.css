@@ -15,11 +15,14 @@
   --color-warm-900: #1c1917;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--font-sans);
   color: var(--color-warm-900);
   background-color: var(--color-warm-50);
-  overflow-x: hidden;
 }
 
 h1, h2, h3 {

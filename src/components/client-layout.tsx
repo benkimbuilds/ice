@@ -182,10 +182,10 @@ function Inner({ children }: { children: ReactNode }) {
             />
           </a>
           {/* Right: action buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
             <a
               href="/analytics"
-              className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md border border-warm-300 text-warm-600 hover:bg-warm-50 transition-colors whitespace-nowrap"
+              className="px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md border border-warm-300 text-warm-600 hover:bg-warm-50 transition-colors whitespace-nowrap"
             >
               📊 <span className="hidden sm:inline">Analytics</span>
             </a>
@@ -195,9 +195,10 @@ function Inner({ children }: { children: ReactNode }) {
               href="https://secure.givelively.org/donate/human-security-initiative"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
+              className="px-2 sm:px-2.5 py-1.5 text-xs sm:text-sm font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors shadow-sm whitespace-nowrap"
             >
-              Support Our Work
+              <span className="hidden sm:inline">Support Our Work</span>
+              <span className="sm:hidden">Support</span>
             </a>
           </div>
         </div>
