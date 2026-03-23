@@ -182,6 +182,7 @@ export function IncidentCard({
   const [candidates, setCandidates] = useState<CombineCandidate[]>([]);
   const [showCandidates, setShowCandidates] = useState(false);
   const [combiningInto, setCombiningInto] = useState<number | null>(null);
+  const [searchingSources, setSearchingSources] = useState(false);
 
   const isPending = editMode && incident.approved === false;
 
@@ -210,6 +211,30 @@ export function IncidentCard({
       }
     } catch {}
     setCombining(false);
+  }
+
+  async function handleSearchSources() {
+    setSearchingSources(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/search-sources`, {
+        method: "POST",
+        headers: { "x-edit-password": "acab" },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.added > 0) {
+          router.refresh();
+        } else {
+          setError("No new sources found");
+        }
+      } else {
+        setError(data.error ?? "Search failed");
+      }
+    } catch {
+      setError("Network error");
+    }
+    setSearchingSources(false);
   }
 
   async function handleCombineInto(existingId: number) {
@@ -809,6 +834,13 @@ export function IncidentCard({
             className="px-3 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
           >
             {combining ? "Searching…" : "⊕ Add to existing"}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); handleSearchSources(); }}
+            disabled={searchingSources}
+            className="px-3 py-1 text-xs font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors disabled:opacity-60"
+          >
+            {searchingSources ? "Searching…" : "🔍 Find sources"}
           </button>
           {isPending && (
             <>
