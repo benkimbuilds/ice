@@ -65,7 +65,17 @@ function Inner({ children }: { children: ReactNode }) {
       {/* HUMSI branding strip */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-          <LanguageToggle />
+          <div className="flex items-center gap-3">
+            <LanguageToggle />
+            <a
+              href="https://secure.givelively.org/donate/human-security-initiative"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 text-sm font-medium rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors shadow-sm"
+            >
+              ❤ Donate
+            </a>
+          </div>
           <a
             href="https://humsi.org"
             target="_blank"
