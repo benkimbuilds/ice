@@ -153,7 +153,7 @@ function BulkToolbar({
           type="checkbox"
           checked={allSelected}
           onChange={toggleAll}
-          className="w-3.5 h-3.5 rounded border-warm-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
+          className="w-4.5 h-4.5 rounded border-warm-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
         />
         <span className="text-xs text-warm-500 font-medium">
           {allSelected ? "Deselect all" : `Select all ${label}`}
@@ -242,6 +242,23 @@ function PendingSection({
     setMergingCluster(null);
   }
 
+  async function handleApproveSeparately(clusterIdx: number) {
+    const cluster = clusters[clusterIdx];
+    if (!cluster) return;
+    setMergingCluster(clusterIdx);
+    try {
+      // Approve each incident individually without merging
+      for (const id of cluster.ids) {
+        await fetch(`/api/incidents/${id}/approve`, {
+          method: "POST",
+          headers: { "x-edit-password": "acab" },
+        });
+      }
+      router.refresh();
+    } catch {}
+    setMergingCluster(null);
+  }
+
   return (
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-3 px-1">
@@ -283,11 +300,18 @@ function PendingSection({
                 >
                   {isMerging ? "Merging…" : "Merge (keep pending)"}
                 </button>
+                <button
+                  onClick={() => handleApproveSeparately(idx)}
+                  disabled={isMerging}
+                  className="px-3 py-1 text-xs font-medium rounded-md border border-warm-300 text-warm-600 hover:bg-warm-50 transition-colors disabled:opacity-60"
+                >
+                  {isMerging ? "…" : "Approve separately"}
+                </button>
               </div>
             </div>
             {clusterIncidents_.map((incident) => (
               <div key={incident.id} className="flex items-start">
-                <div className="pt-6 pl-3 pr-0 shrink-0">
+                <div className="pt-6 pl-3 pr-2 shrink-0">
                   <input
                     type="checkbox"
                     checked={pendingSelected.has(incident.id)}
@@ -298,7 +322,7 @@ function PendingSection({
                       setPendingSelected(next);
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-3.5 h-3.5 rounded border-warm-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-5 h-5 rounded border-warm-400 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
