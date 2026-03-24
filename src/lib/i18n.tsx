@@ -129,7 +129,7 @@ const en: T = {
     personImpacted: {
       "DACA": "DACA/Dreamer",
       "LGBTQ+": "LGBTQ+",
-      "LPR": "LPR/Greencard Holder",
+      "LPR": "LPR/Greencard",
       "Minor/Family": "Minor",
       "Native American": "Native American (U.S.)",
       "Indigenous (Non-U.S.)": "Indigenous (Non-U.S.)",

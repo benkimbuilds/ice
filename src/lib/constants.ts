@@ -21,7 +21,7 @@ export const INCIDENT_TYPE_TAGS = [
 export const PERSON_IMPACTED_TAGS = [
   { value: "DACA", label: "DACA/Dreamer" },
   { value: "LGBTQ+", label: "LGBTQ+" },
-  { value: "LPR", label: "LPR/Greencard Holder" },
+  { value: "LPR", label: "LPR/Greencard" },
   { value: "Minor/Family", label: "Minor" },
   { value: "Native American", label: "Native American (U.S.)" },
   { value: "Indigenous (Non-U.S.)", label: "Indigenous (Non-U.S.)" },
