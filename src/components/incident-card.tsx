@@ -183,7 +183,6 @@ export function IncidentCard({
   const [candidates, setCandidates] = useState<CombineCandidate[]>([]);
   const [showCandidates, setShowCandidates] = useState(false);
   const [combiningInto, setCombiningInto] = useState<number | null>(null);
-  const [pendingForcemerge, setPendingForcemerge] = useState<number | null>(null);
   const [searchingSources, setSearchingSources] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [keywordSearch, setKeywordSearch] = useState("");
@@ -1008,15 +1007,6 @@ export function IncidentCard({
       {editMode && (error || successMsg) && (
         <div className="mt-2 ml-0 flex items-center gap-2">
           <p className={`text-xs ${error ? "text-red-500" : "text-green-600"}`}>{error || successMsg}</p>
-          {pendingForcemerge && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleCombineInto(pendingForcemerge, true); }}
-              disabled={combiningInto !== null}
-              className="px-2.5 py-1 text-xs font-medium rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-60"
-            >
-              {combiningInto ? "Merging…" : "Merge anyway"}
-            </button>
-          )}
         </div>
       )}
       {editMode && (
