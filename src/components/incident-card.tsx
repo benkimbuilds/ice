@@ -189,6 +189,7 @@ export function IncidentCard({
   const [keywordSearching, setKeywordSearching] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const [splitting, setSplitting] = useState(false);
   const [inlineEditing, setInlineEditing] = useState<"headline" | "summary" | null>(null);
   const [inlineValue, setInlineValue] = useState("");
   const [inlineSaving, setInlineSaving] = useState(false);
@@ -274,6 +275,27 @@ export function IncidentCard({
       });
       router.refresh();
     } catch {}
+  }
+
+  async function handleSplit() {
+    setSplitting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/incidents/${incident.id}/split`, {
+        method: "POST",
+        headers: { "x-edit-password": "acab" },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg(`Split into ${data.groups} incidents`);
+        router.refresh();
+      } else {
+        setError(data.error ?? "Split failed");
+      }
+    } catch {
+      setError("Network error during split");
+    }
+    setSplitting(false);
   }
 
   async function handleKeywordSearch() {
@@ -1111,6 +1133,15 @@ export function IncidentCard({
           >
             {regenerating ? "Regenerating…" : "↻ Regenerate summary"}
           </button>
+          {parseAltSources(incident.altSources).length > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); handleSplit(); }}
+              disabled={splitting}
+              className="px-3 py-1 text-xs font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600 transition-colors disabled:opacity-60"
+            >
+              {splitting ? "Splitting…" : "✂ Split"}
+            </button>
+          )}
           {!confirmDelete ? (
             <button
               onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
