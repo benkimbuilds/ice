@@ -17,7 +17,7 @@ If the sources cover the same event, policy, topic, or situation — even from d
   "headline": "A short synthesized headline summarizing the full picture of the incident (max 15 words)",
   "summary": "A 3-5 sentence factual summary (MAX 150 words) synthesizing all sources into one cohesive narrative. Do NOT repeat information from multiple sources — merge overlapping details into single statements.",
   "timeline": [
-    {"date": "M/D/YYYY", "event": "Short factual description of what happened on this date"}
+    {"date": "M/D/YYYY", "event": "Short factual description of what happened on this date", "sourceIndices": [0, 2]}
   ]
 }
 
@@ -26,6 +26,7 @@ Rules:
 - Only flag mismatch for truly unrelated incidents (different events in different places with no connection).
 - The headline and summary must represent ALL sources, not just one.
 - If the situation changed over time (e.g. detained → released, or appealed), reflect that arc.
+- IMPORTANT: Each timeline event MUST include "sourceIndices" — an array of source indices (0-based) that cover/report on that specific event. This is how sources get attributed to the parts of the story they cover.
 - The timeline should list key events in chronological order with dates in M/D/YYYY format. Each date should appear ONLY ONCE — if multiple things happened on the same day, synthesize them into a single concise sentence. Each event should be a short factual statement (e.g. "Detained by ICE agents at courthouse", "Federal judge ordered release on bond", "Released from custody"). Include 2-8 events covering the major developments.
 - Remain strictly factual and neutral in tone. Describe only what happened — do not editorialize, assess significance, or use conclusory language.
 - Do NOT use phrases like "became a symbol of," "drew national attention," "highlighted the human cost of," "raised questions about," or similar embellishments. Instead, describe the concrete facts: who protested, what organizations responded, what legal actions were taken.
@@ -145,6 +146,7 @@ export type TimelineEvent = {
   date: string;
   event: string;
   source?: string;
+  sources?: string[];
 };
 
 export function parseTimeline(raw: string | null): TimelineEvent[] {
@@ -223,7 +225,7 @@ export async function synthesizeIncidentsWithMismatchDetection(
 
   const message = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: SYNTHESIS_PROMPT,
     messages: [
       {
@@ -253,14 +255,29 @@ export async function synthesizeIncidentsWithMismatchDetection(
     };
   }
 
-  // Parse timeline events
+  // Parse timeline events, converting sourceIndices to actual URLs
   const timeline: TimelineEvent[] = (parsed.timeline ?? [])
     .filter((e: any) => e?.date && e?.event)
-    .map((e: any) => ({
-      date: e.date,
-      event: e.event,
-      ...(e.source ? { source: e.source } : {}),
-    }));
+    .map((e: any) => {
+      const sources: string[] = [];
+      // Convert sourceIndices to URLs
+      if (Array.isArray(e.sourceIndices)) {
+        for (const idx of e.sourceIndices) {
+          if (typeof idx === "number" && incidents[idx]?.url) {
+            sources.push(incidents[idx].url);
+          }
+        }
+      }
+      // Also support legacy source/sources fields
+      if (e.source && typeof e.source === "string") sources.push(e.source);
+      if (Array.isArray(e.sources)) sources.push(...e.sources.filter((s: any) => typeof s === "string"));
+
+      return {
+        date: e.date,
+        event: e.event,
+        ...(sources.length > 0 ? { sources: [...new Set(sources)] } : {}),
+      };
+    });
 
   return {
     mismatch: false,
