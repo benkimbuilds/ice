@@ -384,7 +384,7 @@ export function PosterGenerator({
                   marginBottom: "4px",
                 }}
               >
-                MISSING
+                DISAPPEARED
               </div>
               <div
                 style={{

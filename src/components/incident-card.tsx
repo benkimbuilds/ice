@@ -1219,18 +1219,25 @@ export function IncidentCard({
                   )}
                 </div>
               )}
-              {/* Public poster button — only for specific person stories */}
+              {/* Public poster button — only for stories naming specific individuals */}
               {!editMode && (() => {
                 const posterTags = new Set(["Disappearance/Detention", "Deported", "3rd Country Deportation"]);
                 const hasPosterTag = rawTags.some((t) => posterTags.has(t));
                 const policyTag = rawTags.includes("Policy/Stats");
                 if (!hasPosterTag || policyTag) return null;
+                // Only show if a specific person is named — check for capitalized multi-word names in headline
+                const headline = incident.headline || "";
+                const namePattern = /\b[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:\s+(?:de\s+la\s+|de\s+|del\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+){1,3}\b/;
+                const excludeWords = /^(Federal|Supreme|Trump|Biden|President|Judge|Officer|Agent|Senator|Governor|Mayor|Immigration|Customs|Border|Patrol|Department|Homeland|Security|National|Guard|Police|Sheriff|United|States|San\s|Los\s|New\s|North\s|South\s|El\s|La\s|Las\s)/;
+                const matches = headline.match(new RegExp(namePattern, "g")) || [];
+                const hasName = matches.some(m => !excludeWords.test(m));
+                if (!hasName) return null;
                 return (
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowPoster(true); }}
                     className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-gray-900 text-white hover:bg-gray-800 transition-colors"
                   >
-                    <span>📋</span> Generate Missing Poster
+                    <span>📋</span> Generate Poster
                   </button>
                 );
               })()}
