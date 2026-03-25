@@ -173,11 +173,13 @@ export async function getMapIncidents(filters: IncidentFilters = {}) {
       id: true,
       url: true,
       headline: true,
+      summary: true,
       date: true,
       location: true,
       latitude: true,
       longitude: true,
       incidentType: true,
+      altSources: true,
     },
   });
 }

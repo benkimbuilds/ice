@@ -11,11 +11,13 @@ type MapIncident = {
   id: number;
   url: string;
   headline: string | null;
+  summary: string | null;
   date: string | null;
   location: string | null;
   latitude: number | null;
   longitude: number | null;
   incidentType: string | null;
+  altSources: string | null;
 };
 
 type Incident = {

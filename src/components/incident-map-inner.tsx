@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -8,11 +9,13 @@ type MapIncident = {
   id: number;
   url: string;
   headline: string | null;
+  summary: string | null;
   date: string | null;
   location: string | null;
   latitude: number | null;
   longitude: number | null;
   incidentType: string | null;
+  altSources: string | null;
 };
 
 // Custom orange dot marker
@@ -42,6 +45,83 @@ function createClusterIcon(cluster: any) {
   });
 }
 
+function parseAltSources(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function IncidentPopup({ inc }: { inc: MapIncident }) {
+  const [expanded, setExpanded] = useState(false);
+  const altUrls = parseAltSources(inc.altSources);
+  const allUrls = [inc.url, ...altUrls];
+
+  return (
+    <div className="text-sm max-w-[300px]">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="font-semibold mb-1 leading-snug text-orange-600 hover:text-orange-800 hover:underline block text-left cursor-pointer"
+      >
+        {inc.headline || "Untitled"}
+      </button>
+      <div className="flex items-center gap-2 text-xs text-gray-500">
+        {inc.date && <span>{inc.date}</span>}
+        {inc.location && <span>{inc.location}</span>}
+      </div>
+
+      {expanded && (
+        <div className="mt-2">
+          {inc.summary && (
+            <p className="text-xs text-gray-700 leading-relaxed mb-2">{inc.summary}</p>
+          )}
+          <div className="border-t border-gray-200 pt-1.5 mt-1.5">
+            <p className="text-[10px] font-medium text-gray-400 uppercase mb-1">Sources</p>
+            {allUrls.map((url, i) => (
+              <a
+                key={i}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-xs text-blue-600 hover:text-blue-800 hover:underline truncate mb-0.5"
+              >
+                {getDomain(url)}
+              </a>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              const el = document.getElementById(`incident-${inc.id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+                el.classList.add("ring-2", "ring-orange-400", "bg-orange-50/50", "rounded-lg");
+                el.click();
+                setTimeout(() => el.classList.remove("ring-2", "ring-orange-400", "bg-orange-50/50", "rounded-lg"), 4000);
+              } else {
+                window.location.href = `/?highlight=${inc.id}`;
+              }
+            }}
+            className="mt-2 text-xs text-orange-600 hover:text-orange-800 hover:underline cursor-pointer"
+          >
+            View on page
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MapInner({ incidents }: { incidents: MapIncident[] }) {
   return (
     <MapContainer
@@ -69,31 +149,7 @@ export function MapInner({ incidents }: { incidents: MapIncident[] }) {
             icon={dotIcon}
           >
             <Popup>
-              <div className="text-sm max-w-[260px]">
-                <button
-                  onClick={() => {
-                    const el = document.getElementById(`incident-${inc.id}`);
-                    if (el) {
-                      el.scrollIntoView({ behavior: "smooth", block: "center" });
-                      el.classList.add("ring-2", "ring-orange-400", "bg-orange-50/50", "rounded-lg");
-                      el.click();
-                      setTimeout(() => el.classList.remove("ring-2", "ring-orange-400", "bg-orange-50/50", "rounded-lg"), 4000);
-                    } else {
-                      // Incident not on current page — navigate
-                      window.location.href = `/?highlight=${inc.id}`;
-                    }
-                  }}
-                  className="font-semibold mb-1 leading-snug text-orange-600 hover:text-orange-800 hover:underline block text-left cursor-pointer"
-                >
-                  {inc.headline}
-                </button>
-                {inc.location && (
-                  <p className="text-xs text-gray-500">{inc.location}</p>
-                )}
-                {inc.date && (
-                  <p className="text-xs text-gray-500">{inc.date}</p>
-                )}
-              </div>
+              <IncidentPopup inc={inc} />
             </Popup>
           </Marker>
         ))}
