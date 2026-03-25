@@ -70,7 +70,23 @@ export function MapInner({ incidents }: { incidents: MapIncident[] }) {
           >
             <Popup>
               <div className="text-sm max-w-[260px]">
-                <a href={`/?highlight=${inc.id}`} className="font-semibold mb-1 leading-snug text-orange-600 hover:text-orange-800 hover:underline block">{inc.headline}</a>
+                <button
+                  onClick={() => {
+                    const el = document.getElementById(`incident-${inc.id}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      el.classList.add("ring-2", "ring-orange-400", "bg-orange-50/50", "rounded-lg");
+                      el.click();
+                      setTimeout(() => el.classList.remove("ring-2", "ring-orange-400", "bg-orange-50/50", "rounded-lg"), 4000);
+                    } else {
+                      // Incident not on current page — navigate
+                      window.location.href = `/?highlight=${inc.id}`;
+                    }
+                  }}
+                  className="font-semibold mb-1 leading-snug text-orange-600 hover:text-orange-800 hover:underline block text-left cursor-pointer"
+                >
+                  {inc.headline}
+                </button>
                 {inc.location && (
                   <p className="text-xs text-gray-500">{inc.location}</p>
                 )}
