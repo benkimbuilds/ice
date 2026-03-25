@@ -372,6 +372,19 @@ function PendingSection({
   );
 }
 
+function isPosterEligible(inc: Incident): boolean {
+  const tags = (inc.incidentType ?? "").split(",").map(t => t.trim());
+  const posterTags = new Set(["Disappearance/Detention", "Deported", "3rd Country Deportation"]);
+  const hasPosterTag = tags.some(t => posterTags.has(t));
+  if (!hasPosterTag || tags.includes("Policy/Stats")) return false;
+  // Check for named individual in headline or first 2 sentences of summary
+  const text = (inc.headline || "") + " " + (inc.summary || "").split(".").slice(0, 2).join(".");
+  const namePattern = /\b[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:\s+(?:['"][A-Za-z]+['"]\s+)?(?:de\s+la\s+|de\s+|del\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+){1,3}\b/g;
+  const excludeWords = /^(Federal|Supreme|Trump|Biden|President|Judge|Officer|Agent|Senator|Governor|Mayor|Immigration|Customs|Border|Patrol|Department|Homeland|Security|National|Guard|Police|Sheriff|United|States|San\s|Los\s|New\s|North\s|South\s|El\s|La\s|Las\s|Human\s|Rights|According|American)/;
+  const matches = text.match(namePattern) || [];
+  return matches.some(m => !excludeWords.test(m));
+}
+
 export function IncidentList({
   incidents,
   total,
@@ -380,6 +393,7 @@ export function IncidentList({
   totalPages,
   editMode = false,
   pendingIncidents = [],
+  posterMode = false,
 }: {
   incidents: Incident[];
   total: number;
@@ -388,11 +402,17 @@ export function IncidentList({
   totalPages: number;
   editMode?: boolean;
   pendingIncidents?: Incident[];
+  posterMode?: boolean;
 }) {
   const { t, lang } = useLanguage();
   const searchParams = useSearchParams();
   const { map: translations, loading: translating } = useTranslations(incidents, lang);
   const [pendingSelected, setPendingSelected] = useState<Set<number>>(new Set());
+
+  // Filter for poster mode
+  const displayIncidents = posterMode
+    ? incidents.filter(isPosterEligible)
+    : incidents;
 
   // Handle ?highlight=ID — scroll to and expand the incident
   useEffect(() => {
@@ -444,7 +464,7 @@ export function IncidentList({
       ) : (
         <>
           <div>
-            {incidents.map((incident) => (
+            {displayIncidents.map((incident) => (
               <IncidentCard
                 key={incident.id}
                 incident={incident}
@@ -453,6 +473,11 @@ export function IncidentList({
                 translateSummary={lang === "es"}
               />
             ))}
+            {posterMode && displayIncidents.length === 0 && (
+              <p className="text-center text-warm-400 py-8 text-sm">
+                No poster-eligible stories found in this view. Try navigating to a different month.
+              </p>
+            )}
           </div>
           <MonthNavigator />
         </>

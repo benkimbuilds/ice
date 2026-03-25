@@ -55,6 +55,7 @@ export function PageLayout({
   pendingIncidents?: Incident[];
 }) {
   const [showMap, setShowMap] = useState(true);
+  const [posterMode, setPosterMode] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
@@ -139,6 +140,16 @@ export function PageLayout({
               </svg>
             </button>
           )}
+          <button
+            onClick={() => setPosterMode(!posterMode)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm ${
+              posterMode
+                ? "bg-gray-900 text-white hover:bg-gray-800"
+                : "text-warm-600 bg-white border border-warm-300 hover:bg-warm-50 hover:border-warm-400 hover:text-warm-800"
+            }`}
+          >
+            📋 Advocacy Posters
+          </button>
           {hasMap && (
             <button
               onClick={() => setShowMap(!showMap)}
@@ -156,11 +167,23 @@ export function PageLayout({
         </div>
       </div>
 
-      {hasMap && <IncidentMap incidents={mapIncidents} showMap={showMap} />}
+      {posterMode && (
+        <div className="mb-6 p-4 bg-gray-900 text-white rounded-lg">
+          <h3 className="font-bold text-lg mb-1">Generate Advocacy Posters</h3>
+          <p className="text-sm text-gray-300">
+            Below are stories of community members who have been disappeared, detained, or deported.
+            Expand any story and click the <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-700 rounded text-xs font-medium">📋 Generate Poster</span> button
+            beneath the summary to create a shareable advocacy poster.
+          </p>
+        </div>
+      )}
+
+      {hasMap && !posterMode && <IncidentMap incidents={mapIncidents} showMap={showMap} />}
 
       {/* Incident list */}
       <IncidentList
         incidents={incidents}
+        posterMode={posterMode}
         total={total}
         totalAll={totalAll}
         page={page}
