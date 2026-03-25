@@ -20,22 +20,38 @@ type PhotoOption = {
 
 function extractPersonName(headline: string | null, summary: string | null): string {
   const text = `${headline ?? ""} ${summary ?? ""}`;
+  // Name part: capitalized word, optionally followed by nickname in quotes
+  const nameWord = `[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+`;
+  const nickname = `(?:\\s+['"][A-Za-z]+['"])?`;
+  const namePart = `(?:de\\s+la\\s+|de\\s+|del\\s+)?${nameWord}`;
+  const fullName = `(${nameWord}${nickname}(?:\\s+${namePart}){1,3})`;
+
   const patterns = [
-    /([A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:\s+(?:de\s+la\s+|de\s+|del\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+){1,3})(?:\s*,\s*(?:a |an |who |was |is ))/,
-    /(?:^|\.\s+)([A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:\s+(?:de\s+la\s+|de\s+|del\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+){1,3})\s+was\s/,
-    /(?:detained|deported|arrested|detained)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+){1,2})/,
+    // "Name, a 28-year-old..." or "Name, who was..."
+    new RegExp(`${fullName}(?:\\s*,\\s*(?:a |an |who |was |is |age ))`, ""),
+    // Sentence start: "Name was detained..."
+    new RegExp(`(?:^|[.!?]\\s+)${fullName}\\s+(?:was|has been|had been|is)\\s`, ""),
+    // "detained Name" / "deported Name"
+    new RegExp(`(?:detained|deported|arrested|detains|deports|arrests)\\s+${fullName}`, ""),
+    // "identified as Name"
+    new RegExp(`identified\\s+as\\s+${fullName}`, ""),
+    // "named Name" or "name is Name"
+    new RegExp(`(?:named|name\\s+is)\\s+${fullName}`, ""),
   ];
+
+  const stopWords = new Set([
+    "The", "This", "That", "These", "Those", "Their", "According",
+    "Federal", "Immigration", "Customs", "Enforcement", "Department",
+    "President", "Trump", "Biden", "Administration", "Police",
+    "United", "States", "America", "Mexico", "Guatemala", "El",
+    "Human", "Rights", "American", "National", "Supreme", "Court",
+  ]);
 
   for (const p of patterns) {
     const m = text.match(p);
     if (m?.[1]) {
-      const name = m[1];
-      const stopWords = new Set([
-        "The", "This", "That", "These", "Those", "Their", "According",
-        "Federal", "Immigration", "Customs", "Enforcement", "Department",
-        "President", "Trump", "Biden", "Administration", "Police",
-        "United", "States", "America", "Mexico", "Guatemala",
-      ]);
+      // Clean nickname quotes from display name
+      const name = m[1].replace(/['"]/g, "");
       const first = name.split(" ")[0];
       if (!stopWords.has(first)) return name;
     }
