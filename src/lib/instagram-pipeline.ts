@@ -88,6 +88,8 @@ async function scrapeInstagramEmbed(url: string): Promise<EmbedData | null> {
       /datetime="([^"]+)"/,
       /"taken_at_timestamp"\s*:\s*(\d+)/,
       /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/,
+      /data-testid="post-timestamp"[^>]*title="([^"]+)"/,
+      /title="([A-Z][a-z]+ \d{1,2}, \d{4})"/,
     ];
     for (const pat of datePatterns) {
       const m = html.match(pat);
@@ -99,6 +101,27 @@ async function scrapeInstagramEmbed(url: string): Promise<EmbedData | null> {
           postDate = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
           break;
         }
+      }
+    }
+
+    // Fallback: try Instagram oEmbed API for metadata
+    if (!postDate) {
+      try {
+        const oembedUrl = `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=IGQVJV`;
+        // Try the public oEmbed endpoint (no auth needed for basic metadata)
+        const oembedRes = await fetch(
+          `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}`,
+          { signal: AbortSignal.timeout(5000) }
+        );
+        if (oembedRes.ok) {
+          const oembed = await oembedRes.json();
+          // oEmbed sometimes includes title with date context
+          if (oembed.title && !caption) {
+            caption = oembed.title;
+          }
+        }
+      } catch {
+        // oEmbed unavailable, continue
       }
     }
 
@@ -409,16 +432,24 @@ export async function processInstagramPipeline(incidentId: number): Promise<void
       }
     }
 
-    // Use best available date: existing > extracted > embed post date
+    // Use best available date: existing > extracted (often from news article) > embed post date
+    // Prefer extracted.date since it usually comes from a real news article with a publication date
     const finalDate = incident.date ?? extracted.date ?? embed?.postDate ?? null;
-    const parsedDate = parseIncidentDate(finalDate);
+    // If we still have no date and we have news articles, try their publishedDate directly
+    const effectiveDate = finalDate ?? (articles.length > 0 && articles[0].publishedDate
+      ? (() => {
+          const d = new Date(articles[0].publishedDate);
+          return !isNaN(d.getTime()) ? `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}` : null;
+        })()
+      : null);
+    const parsedDate = parseIncidentDate(effectiveDate);
 
     // ── Step 8: Save ───────────────────────────────────────────────────────
     await prisma.incident.update({
       where: { id: incidentId },
       data: {
         headline: incident.headline ?? extracted.headline,
-        date: finalDate,
+        date: effectiveDate,
         parsedDate,
         location: finalLocation,
         latitude,
