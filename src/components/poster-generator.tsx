@@ -490,7 +490,7 @@ export function PosterGenerator({
                 HUMAN IMPACT PROJECT
               </div>
               <div style={{ opacity: 0.6, fontSize: "9px" }}>
-                humanimpactproject.com
+                hiproject.org
                 {photoCredit && (
                   <>
                     {" · Photo: "}
