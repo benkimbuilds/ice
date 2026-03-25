@@ -463,12 +463,17 @@ export function IncidentList({
 
 function MonthNavigator() {
   const searchParams = useSearchParams();
-  const currentFrom = searchParams.get("from") || "";
-  const currentTo = searchParams.get("to") || "";
+  // Default to current month when no date filters in URL
+  const now = new Date();
+  const defaultFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const defaultLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const defaultTo = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(defaultLastDay).padStart(2, "0")}`;
+  const hasSearchFilters = searchParams.get("q") || searchParams.get("tag") || searchParams.get("location") || searchParams.get("country") || searchParams.get("range");
+  const currentFrom = searchParams.get("from") || (!hasSearchFilters ? defaultFrom : "");
+  const currentTo = searchParams.get("to") || (!hasSearchFilters ? defaultTo : "");
 
   // Generate months from Jan 2025 to current month
   const months: Array<{ label: string; from: string; to: string }> = [];
-  const now = new Date();
   const startYear = 2025;
   const startMonth = 0; // January
 
@@ -488,6 +493,9 @@ function MonthNavigator() {
   // Reverse so newest is first
   months.reverse();
 
+  // Find current active month index
+  const activeIdx = months.findIndex((m) => currentFrom === m.from && currentTo === m.to);
+
   function monthUrl(from: string, to: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.delete("page");
@@ -498,31 +506,40 @@ function MonthNavigator() {
     return qs ? `/?${qs}` : "/";
   }
 
-  function allUrl() {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("page");
-    params.delete("from");
-    params.delete("to");
-    params.delete("range");
-    const qs = params.toString();
-    return qs ? `/?${qs}` : "/";
-  }
-
-  const isAll = !currentFrom && !currentTo;
+  // Prev = newer month (lower index), Next = older month (higher index)
+  const prevMonth = activeIdx > 0 ? months[activeIdx - 1] : null;
+  const nextMonth = activeIdx >= 0 && activeIdx < months.length - 1 ? months[activeIdx + 1] : null;
 
   return (
     <div className="mt-8">
+      {/* Prev/Next arrows */}
+      <div className="flex items-center justify-center gap-3 mb-3">
+        {prevMonth ? (
+          <a
+            href={monthUrl(prevMonth.from, prevMonth.to)}
+            className="px-3 py-1.5 rounded-md border border-warm-300 text-sm text-warm-600 hover:bg-warm-100 transition-colors"
+          >
+            ← {prevMonth.label}
+          </a>
+        ) : (
+          <span className="px-3 py-1.5 text-sm text-warm-300">← Newer</span>
+        )}
+        <span className="text-sm font-semibold text-warm-700">
+          {activeIdx >= 0 ? months[activeIdx].label : ""}
+        </span>
+        {nextMonth ? (
+          <a
+            href={monthUrl(nextMonth.from, nextMonth.to)}
+            className="px-3 py-1.5 rounded-md border border-warm-300 text-sm text-warm-600 hover:bg-warm-100 transition-colors"
+          >
+            {nextMonth.label} →
+          </a>
+        ) : (
+          <span className="px-3 py-1.5 text-sm text-warm-300">Older →</span>
+        )}
+      </div>
+      {/* All months */}
       <div className="flex flex-wrap items-center justify-center gap-1.5">
-        <a
-          href={allUrl()}
-          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            isAll
-              ? "bg-warm-800 text-white"
-              : "border border-warm-300 text-warm-600 hover:bg-warm-100"
-          }`}
-        >
-          All
-        </a>
         {months.map((m) => {
           const isActive = currentFrom === m.from && currentTo === m.to;
           return (
