@@ -63,7 +63,14 @@ export async function GET(
     max_tokens: 300,
     messages: [{
       role: "user",
-      content: `Write a short advocacy poster description (3-4 sentences, max 250 characters) for a "DISAPPEARED FROM OUR COMMUNITY" poster about this person.
+      content: `Return a JSON object with two fields. No markdown, no code fences — ONLY the raw JSON object.
+
+{
+  "name": "Full name of the person",
+  "description": "3-4 sentence poster description"
+}
+
+Write the description for a "DISAPPEARED FROM OUR COMMUNITY" advocacy poster.
 
 PRIORITIZE these humanizing details (include ALL that you can find):
 - Family relationships: children (especially U.S. citizen children), spouse, parents
@@ -73,19 +80,45 @@ PRIORITIZE these humanizing details (include ALL that you can find):
 - Legal status details (DACA, green card holder, TPS, asylum seeker, etc.)
 - What happened: when and how they were taken
 
-Write in third person. Be factual but humanizing. Focus on WHO this person is to their community, not legal/political analysis. Start with their name.
+Write in third person. Be factual but humanizing. Focus on WHO this person is to their community, not legal/political analysis. Start with their name. Do NOT use markdown formatting — plain text only.
 
-Example good description: "Jorge Cruz, a father of four, came to the U.S. from Mexico City at age 5. A green card holder married to a U.S. citizen since 2014, he built a thriving food cart business with 25 carts. On August 27, 2025, ICE agents arrested him as he and his wife returned from dropping their children off at school."
+Example: "Jorge Cruz, a father of four, came to the U.S. from Mexico City at age 5. A green card holder married to a U.S. citizen since 2014, he built a thriving food cart business with 25 carts. On August 27, 2025, ICE agents arrested him as he and his wife returned from dropping their children off at school."
 
 Content from sources:
 ${allContent.slice(0, 6000)}`,
     }],
   });
 
-  const text = message.content[0];
-  if (text.type !== "text") {
+  const rawText = message.content[0];
+  if (rawText.type !== "text") {
     return NextResponse.json({ error: "Unexpected response" }, { status: 500 });
   }
 
-  return NextResponse.json({ description: text.text.trim() });
+  // Try to parse as JSON
+  let name: string | null = null;
+  let description: string;
+
+  try {
+    let jsonStr = rawText.text.trim();
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+    const parsed = JSON.parse(jsonStr);
+    name = parsed.name ?? null;
+    description = parsed.description ?? "";
+  } catch {
+    // Fallback: use raw text as description
+    description = rawText.text;
+  }
+
+  // Strip any remaining markdown
+  description = description
+    .replace(/^#+\s*/gm, "")
+    .replace(/\*\*/g, "")
+    .replace(/\*/g, "")
+    .replace(/^[-•]\s*/gm, "")
+    .replace(/\n+/g, " ")
+    .trim();
+
+  return NextResponse.json({ description, name });
 }

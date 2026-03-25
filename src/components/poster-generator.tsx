@@ -158,6 +158,7 @@ export function PosterGenerator({
       if (res.ok) {
         const data = await res.json();
         if (data.description) setDescription(data.description);
+        if (data.name) setPersonName(data.name);
       }
     } catch {
       // Keep truncated summary as fallback
