@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { parseAltSources } from "@/lib/sources";
 import { INCIDENT_TYPE_TAGS, PERSON_IMPACTED_TAGS } from "@/lib/constants";
 import { useLanguage } from "@/lib/i18n";
+
+const PosterGenerator = lazy(() =>
+  import("./poster-generator").then((mod) => ({ default: mod.PosterGenerator }))
+);
 
 type TimelineEvent = {
   date: string;
@@ -175,6 +179,7 @@ export function IncidentCard({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showPoster, setShowPoster] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
@@ -1286,6 +1291,12 @@ export function IncidentCard({
               {splitting ? "Splitting…" : "✂ Split"}
             </button>
           )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowPoster(true); }}
+            className="px-3 py-1 text-xs font-medium rounded-md bg-gray-700 text-white hover:bg-gray-800 transition-colors"
+          >
+            📋 Poster
+          </button>
           {!confirmDelete ? (
             <button
               onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
@@ -1366,6 +1377,19 @@ export function IncidentCard({
             </div>
           ))}
         </div>
+      )}
+      {showPoster && (
+        <Suspense fallback={null}>
+          <PosterGenerator
+            incidentId={incident.id}
+            headline={incident.headline}
+            summary={incident.summary}
+            date={incident.date}
+            location={incident.location}
+            existingImageUrl={incident.imageUrl}
+            onClose={() => setShowPoster(false)}
+          />
+        </Suspense>
       )}
     </article>
   );
