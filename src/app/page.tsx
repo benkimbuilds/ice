@@ -54,9 +54,6 @@ export default async function Home({
         tagMode: params.tagMode === "any" ? "any" : "all",
         location: params.location as string,
         country: params.country as string,
-        dateFrom,
-        dateTo,
-        range: params.range as string,
       }),
       getPendingIncidents(),
     ]);
