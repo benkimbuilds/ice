@@ -1215,8 +1215,8 @@ export function IncidentCard({
                   )}
                 </div>
               )}
-              {/* Poster button — public or edit mode toggle */}
-              {(() => {
+              {/* Poster button — edit mode only */}
+              {editMode && (() => {
                 const posterTags = new Set(["Disappearance/Detention", "Deported", "3rd Country Deportation"]);
                 const hasPosterTag = rawTags.some((t) => posterTags.has(t));
                 const policyTag = rawTags.includes("Policy/Stats");
@@ -1230,7 +1230,7 @@ export function IncidentCard({
                 const hasName = matches.some(m => !excludeWords.test(m));
                 if (!hasName) return null;
 
-                if (noPoster && !editMode) return null;
+                if (noPoster) return null;
 
                 return (
                   <div className="mt-2 flex items-center gap-2">

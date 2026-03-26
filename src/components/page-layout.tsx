@@ -140,16 +140,18 @@ export function PageLayout({
               </svg>
             </button>
           )}
-          <button
-            onClick={() => setPosterMode(!posterMode)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm ${
-              posterMode
-                ? "bg-gray-900 text-white hover:bg-gray-800"
-                : "text-warm-600 bg-white border border-warm-300 hover:bg-warm-50 hover:border-warm-400 hover:text-warm-800"
-            }`}
-          >
-            📋 Advocacy Posters
-          </button>
+          {editMode && (
+            <button
+              onClick={() => setPosterMode(!posterMode)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors shadow-sm ${
+                posterMode
+                  ? "bg-gray-900 text-white hover:bg-gray-800"
+                  : "text-warm-600 bg-white border border-warm-300 hover:bg-warm-50 hover:border-warm-400 hover:text-warm-800"
+              }`}
+            >
+              📋 Advocacy Posters
+            </button>
+          )}
           {hasMap && (
             <button
               onClick={() => setShowMap(!showMap)}
