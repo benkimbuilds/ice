@@ -102,6 +102,7 @@ export async function mergeIncidents(ids: number[], primaryId?: number) {
   ].filter((url, idx, arr) => url !== primary.url && arr.indexOf(url) === idx);
 
   // Synthesize headline + summary + timeline from all incidents
+  // Use catch to handle mismatch errors — user explicitly asked to merge
   const { headline, summary, timeline } = await synthesizeIncidents(
     incidents.map((i) => ({
       url: i.url,
@@ -109,7 +110,11 @@ export async function mergeIncidents(ids: number[], primaryId?: number) {
       summary: i.summary,
       date: i.date,
     }))
-  );
+  ).catch(() => ({
+    headline: primary.headline || others[0]?.headline || "Untitled",
+    summary: [primary.summary, ...others.map((o) => o.summary)].filter(Boolean).join(" "),
+    timeline: [] as Array<{ date: string; event: string; source?: string }>,
+  }));
 
   // Pick the best metadata: first non-null value across all incidents
   const pick = <T>(fn: (i: typeof primary) => T | null): T | null =>

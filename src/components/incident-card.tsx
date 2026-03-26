@@ -797,7 +797,11 @@ export function IncidentCard({
     <article
       id={`incident-${incident.id}`}
       className={`group border-b border-warm-200 py-5 cursor-pointer transition-colors hover:bg-warm-50/70 px-3 -mx-3`}
-      onClick={() => handleExpand()}
+      onClick={(e) => {
+        // Don't toggle expand when in card-editing mode (prevents swallowing double-clicks)
+        if (cardEditing) return;
+        handleExpand();
+      }}
     >
       <div className="flex items-stretch gap-3">
         {/* Main content */}
@@ -1272,7 +1276,52 @@ export function IncidentCard({
 
         {/* Right side: edit tools only */}
         {editMode && (
-          <div className="flex items-center pt-1 shrink-0">
+          <div className="flex items-center gap-2 pt-1 shrink-0">
+            {/* Reviewer checkboxes */}
+            <label
+              className="flex items-center gap-0.5 cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+              title="Reviewed by A"
+            >
+              <input
+                type="checkbox"
+                checked={incident.reviewedA ?? false}
+                onChange={async (e) => {
+                  e.stopPropagation();
+                  const val = e.target.checked;
+                  await fetch(`/api/incidents/${incident.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "x-edit-password": "acab" },
+                    body: JSON.stringify({ headline: incident.headline, date: incident.date, location: incident.location, summary: incident.summary, incidentType: incident.incidentType, country: incident.country, reviewedA: val }),
+                  });
+                  router.refresh();
+                }}
+                className="w-3.5 h-3.5 rounded accent-green-600 cursor-pointer"
+              />
+              <span className={`text-[10px] font-bold ${(incident.reviewedA ?? false) ? "text-green-600" : "text-warm-300"}`}>A</span>
+            </label>
+            <label
+              className="flex items-center gap-0.5 cursor-pointer"
+              onClick={(e) => e.stopPropagation()}
+              title="Reviewed by J"
+            >
+              <input
+                type="checkbox"
+                checked={incident.reviewedJ ?? false}
+                onChange={async (e) => {
+                  e.stopPropagation();
+                  const val = e.target.checked;
+                  await fetch(`/api/incidents/${incident.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "x-edit-password": "acab" },
+                    body: JSON.stringify({ headline: incident.headline, date: incident.date, location: incident.location, summary: incident.summary, incidentType: incident.incidentType, country: incident.country, reviewedJ: val }),
+                  });
+                  router.refresh();
+                }}
+                className="w-3.5 h-3.5 rounded accent-blue-600 cursor-pointer"
+              />
+              <span className={`text-[10px] font-bold ${(incident.reviewedJ ?? false) ? "text-blue-600" : "text-warm-300"}`}>J</span>
+            </label>
             <button
               onClick={(e) => { e.stopPropagation(); setCardEditing(!cardEditing); setExpanded(true); }}
               title="Edit incident"

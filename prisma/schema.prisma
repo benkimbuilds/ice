@@ -26,6 +26,9 @@ model Incident {
   imageUrl     String?
   status       String    @default("RAW")
   approved     Boolean   @default(false)
+  reviewedA    Boolean   @default(false)
+  reviewedJ    Boolean   @default(false)
+  excludePoster Boolean  @default(false)
   timeline     String?
   rawHtml      String?
   errorMessage String?
