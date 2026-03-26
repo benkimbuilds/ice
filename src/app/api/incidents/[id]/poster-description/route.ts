@@ -66,7 +66,7 @@ export async function GET(
       content: `Return a JSON object with two fields. No markdown, no code fences — ONLY the raw JSON object.
 
 {
-  "name": "Full name of the person",
+  "name": "Full name of the person. If the name is not available, use a short descriptive identifier based on their nationality, job, and/or role — e.g. 'Ghanaian Home Care Worker', 'Honduran Father of Three', 'Mexican Restaurant Cook'. Never say 'Name withheld' or 'Unknown'.",
   "description": "3-4 sentence poster description"
 }
 
