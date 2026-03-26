@@ -379,7 +379,7 @@ function isPosterEligible(inc: Incident): boolean {
   if (!hasPosterTag || tags.includes("Policy/Stats") || tags.includes("no-poster")) return false;
   // Check for named individual in headline or first 2 sentences of summary
   const text = (inc.headline || "") + " " + (inc.summary || "").split(".").slice(0, 2).join(".");
-  const namePattern = /\b[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:\s+(?:['"][A-Za-z]+['"]\s+)?(?:de\s+la\s+|de\s+|del\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+){1,3}\b/g;
+  const namePattern = /\b[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:-[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+)?(?:\s+(?:['"][A-Za-z]+['"]\s+)?(?:de\s+la\s+|de\s+|del\s+)?[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?:-[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+)?){1,3}\b/g;
   const excludeWords = /^(Federal|Supreme|Trump|Biden|President|Judge|Officer|Agent|Senator|Governor|Mayor|Immigration|Customs|Border|Patrol|Department|Homeland|Security|National|Guard|Police|Sheriff|United|States|San\s|Los\s|New\s|North\s|South\s|El\s|La\s|Las\s|Human\s|Rights|According|American)/;
   const matches = text.match(namePattern) || [];
   return matches.some(m => !excludeWords.test(m));
