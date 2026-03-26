@@ -811,7 +811,7 @@ export function IncidentCard({
                 onChange={(e) => setInlineValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") saveInlineEdit(); if (e.key === "Escape") setInlineEditing(null); }}
                 autoFocus
-                className="flex-1 font-serif text-[1.05rem] font-semibold leading-snug text-warm-900 border border-blue-300 rounded px-1.5 py-0.5 focus:outline-none focus:border-blue-500"
+                className="flex-1 text-[1.05rem] font-semibold leading-snug text-warm-900 border border-blue-300 rounded px-1.5 py-0.5 focus:outline-none focus:border-blue-500"
               />
               <button onClick={saveInlineEdit} disabled={inlineSaving} className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
                 {inlineSaving ? "…" : "Save"}
@@ -820,7 +820,7 @@ export function IncidentCard({
             </div>
           ) : (
             <h3
-              className={`font-serif text-[1.05rem] font-semibold leading-snug text-warm-900 group-hover:text-warm-700 transition-colors ${editMode ? "cursor-text hover:bg-blue-50/50 rounded px-0.5 -mx-0.5" : ""}`}
+              className={`text-[1.05rem] font-semibold leading-snug text-warm-900 group-hover:text-warm-700 transition-colors ${editMode ? "cursor-text hover:bg-blue-50/50 rounded px-0.5 -mx-0.5" : ""}`}
               onDoubleClick={editMode ? (e) => { e.stopPropagation(); startInlineEdit("headline"); } : undefined}
             >
               {translatedHeadline ?? incident.headline ?? "Untitled incident"}

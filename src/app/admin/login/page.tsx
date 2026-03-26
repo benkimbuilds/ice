@@ -10,7 +10,7 @@ export default async function LoginPage() {
 
   return (
     <div className="max-w-sm mx-auto mt-24">
-      <h2 className="text-xl font-serif font-bold mb-6">Admin Login</h2>
+      <h2 className="text-xl font-bold mb-6">Admin Login</h2>
       <LoginForm />
     </div>
   );

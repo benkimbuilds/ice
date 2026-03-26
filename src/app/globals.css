@@ -26,5 +26,5 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }

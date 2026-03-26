@@ -131,7 +131,7 @@ function SiteHeader() {
     <header className="relative bg-black text-white overflow-hidden">
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
         <a href="/" className="block group">
-          <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight font-serif bg-gradient-to-r from-white via-amber-100 to-orange-200 bg-clip-text text-transparent drop-shadow-sm leading-tight">
+          <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-amber-100 to-orange-200 bg-clip-text text-transparent drop-shadow-sm leading-tight">
             {t.siteTitle}
           </h1>
           <p className="text-warm-400 group-hover:text-warm-300 mt-1.5 text-sm sm:text-base leading-relaxed max-w-3xl font-light tracking-wide transition-colors">
